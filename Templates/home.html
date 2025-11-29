@@ -1,0 +1,108 @@
+﻿<div class='tab-container'>
+    <button class='tab-btn active' onclick="switchTab('todo')">Chưa xử lý</button>
+    <button class='tab-btn' onclick="switchTab('done')">Đã Xử Lý</button>
+</div>
+
+<div id='tab-todo'>
+    <div class='selection-bar'>
+        <div id='divSelectAll' style='display:none; align-items:center; background:#f5f5f5; padding:8px 12px; border-radius:20px; cursor:pointer' onclick='toggleAllClick()'>
+            <input type='checkbox' class='select-chk' id='chkAllBatch' style='pointer-events:none;'>
+            <label style='font-weight:bold;margin-left:8px;cursor:pointer'>Chọn tất cả</label>
+        </div>
+        <div style='display:flex;align-items:center;width:100%;justify-content:flex-end'>
+            <button id='btnBatch' class='btn-create-batch' onclick='toggleBatchMode()'>Gom đơn soạn hàng</button>
+            <button id='btnCancel' class='btn-cancel-batch' onclick='cancelBatchMode()'>✕</button>
+        </div>
+    </div>
+
+    {{TODO_LIST}}
+</div>
+
+<div id='tab-done' style='display:none'>
+    {{DONE_LIST}}
+</div>
+
+<script>
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#tab-todo, #tab-done').forEach(d => d.style.display = 'none');
+        if(tab === 'todo') {
+            document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+            document.getElementById('tab-todo').style.display = 'block';
+        } else {
+            document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+            document.getElementById('tab-done').style.display = 'block';
+        }
+    }
+
+    let isSelecting = false;
+    function toggleBatchMode() {
+        if(!isSelecting) {
+            isSelecting = true;
+            document.body.classList.add('mode-selecting');
+            document.getElementById('btnBatch').innerText = 'Xác nhận gom (0)';
+            document.getElementById('btnBatch').style.width = 'auto';
+            document.getElementById('divSelectAll').style.display = 'flex';
+            document.getElementById('btnCancel').style.display = 'inline-block';
+        } else {
+            const checked = Array.from(document.querySelectorAll('.select-chk:checked')).map(c => c.value);
+            if(checked.length > 0) {
+                if(IS_OFFLINE) {
+                    // Logic chuyển cảnh Offline
+                    document.getElementById('home-view').style.display = 'none';
+                    document.getElementById('picking-view').style.display = 'block';
+                    window.scrollTo(0,0);
+                } else {
+                    window.location.href = '/create-batch?sns=' + checked.join(',');
+                }
+            } else { alert('Chưa chọn đơn nào!'); }
+        }
+    }
+
+    function cancelBatchMode() {
+        isSelecting = false;
+        document.body.classList.remove('mode-selecting');
+        document.getElementById('btnBatch').innerText = 'Gom đơn soạn hàng';
+        document.getElementById('btnBatch').style.width = '100%';
+        document.getElementById('divSelectAll').style.display = 'none';
+        document.getElementById('btnCancel').style.display = 'none';
+        document.querySelectorAll('.select-chk').forEach(c => c.checked = false);
+        document.getElementById('chkAllBatch').checked = false;
+    }
+
+    function toggleAllClick() {
+        const chkMain = document.getElementById('chkAllBatch');
+        chkMain.checked = !chkMain.checked;
+        document.querySelectorAll('.select-chk:not([disabled])').forEach(c => c.checked = chkMain.checked);
+        updateCount();
+    }
+
+    function updateCount() {
+        if(isSelecting) {
+            const count = document.querySelectorAll('.select-chk:checked').length;
+            document.getElementById('btnBatch').innerText = 'Xác nhận gom (' + count + ')';
+        }
+    }
+
+    // Auto-close accordion
+    document.querySelectorAll('details').forEach((detail) => {
+        detail.addEventListener('toggle', (e) => {
+            if (detail.open) {
+                document.querySelectorAll('details').forEach((other) => {
+                    if (other !== detail && other.open && other.closest('#tab-todo')) other.removeAttribute('open');
+                });
+            }
+        });
+    });
+
+    async function shipOrder(btn, sn) {
+        if(!confirm('Xác nhận chuẩn bị hàng?')) return;
+        btn.disabled = true; btn.innerText = '⏳...';
+        if(IS_OFFLINE) { setTimeout(() => { alert('Offline: Success'); window.location.reload(); }, 500); return; }
+        try {
+            const res = await fetch('/ship-order?sn=' + sn);
+            const data = await res.json();
+            if(data.success) window.location.reload();
+        } catch(e) { alert('Lỗi: ' + e); btn.disabled = false; }
+    }
+</script>
