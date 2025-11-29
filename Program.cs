@@ -13,16 +13,36 @@ using Microsoft.AspNetCore.WebUtilities;
 
 namespace ShopeeServer
 {
+
     class Program
     {
+        private static readonly Regex LocationRegex = new Regex(@"^\[(?<Shelf>\d+)N(?<Level>\d+)(?:-(?<Box>\d+))?\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        public static Dictionary<string, string> GetItemLocation(string input)
+        {
+            var resultData = new Dictionary<string, string>();
+
+            if (string.IsNullOrEmpty(input)) return resultData;
+
+            var match = LocationRegex.Match(input);
+            if (match.Success)
+            {
+                resultData["Shelf"] = match.Groups["Shelf"].Value;
+                resultData["Level"] = match.Groups["Level"].Value;
+                if (match.Groups["Box"].Success) resultData["Box"] = match.Groups["Box"].Value;
+            }
+
+            return resultData;
+        }
+
         private static List<Order> _dbOrders = new List<Order>();
         private static object _lock = new object();
 
         static async Task Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            Console.WriteLine("=== SHOPEE WMS SERVER ===");
+            Console.WriteLine("=== SHOPEE WMS SERVER (RESTORED STABLE VERSION) ===");
 
+            // 1. CHECK AUTH
             if (string.IsNullOrEmpty(ShopeeApiHelper.AccessToken))
             {
                 Console.WriteLine("\n[WARN] Chưa có Token. Vui lòng Login:");
@@ -44,6 +64,7 @@ namespace ShopeeServer
                 else return;
             }
 
+            // 2. START SYNC
             _ = Task.Run(async () => {
                 while (true)
                 {
@@ -52,6 +73,7 @@ namespace ShopeeServer
                 }
             });
 
+            // 3. START SERVER
             StartServer();
         }
 
@@ -61,7 +83,7 @@ namespace ShopeeServer
             long to = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), from = DateTimeOffset.UtcNow.AddDays(-15).ToUnixTimeSeconds();
 
             string json = await ShopeeApiHelper.GetOrderList(from, to);
-            if (json.Contains("\"error\":\"invalid_acceess_token\""))
+            if (json.Contains("\"error\":\"network_error\""))
             {
                 if (await ShopeeApiHelper.RefreshTokenNow()) json = await ShopeeApiHelper.GetOrderList(from, to);
                 else return;
@@ -98,9 +120,7 @@ namespace ShopeeServer
                                     foreach (var it in o.GetProperty("item_list").EnumerateArray())
                                     {
                                         string name = it.GetProperty("model_name").GetString()!;
-                                        string loc = "Kho";
-                                        var m = Regex.Match(name, @"\[(.*?)\]");
-                                        if (m.Success) loc = m.Groups[1].Value;
+                                        Dictionary<string, string> itemLocation = GetItemLocation(it.GetProperty("model_name").GetString()!);
                                         ord.Items.Add(new OrderItem
                                         {
                                             ItemId = it.GetProperty("item_id").GetInt64(),
@@ -109,7 +129,9 @@ namespace ShopeeServer
                                             ImageUrl = it.GetProperty("image_info").GetProperty("image_url").GetString()!,
                                             Quantity = it.GetProperty("model_quantity_purchased").GetInt32(),
                                             SKU = it.GetProperty("model_sku").GetString() ?? "",
-                                            Location = loc
+                                            Shelf = itemLocation.ContainsKey("Shelf") ? $"Kệ {itemLocation["Shelf"]}" : null,
+                                            Level = itemLocation.ContainsKey("Level") ? $" - Ngăn {itemLocation["Level"]}" : null,
+                                            Box = itemLocation.ContainsKey("Box") ? $" - Thùng {itemLocation["Box"]}" : null
                                         });
                                     }
                                     _dbOrders.Add(ord);
@@ -165,6 +187,7 @@ namespace ShopeeServer
                         lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.Status = 1; }
                         resp.StatusCode = 200;
                     }
+                    // API LẤY CHI TIẾT SẢN PHẨM (ĐÃ FIX LOGIC LẤY STOCK)
                     else if (url == "/api/product")
                     {
                         string sid = req.QueryString["id"];
@@ -172,14 +195,14 @@ namespace ShopeeServer
                         {
                             string rawJson = ShopeeApiHelper.GetItemBaseInfo(itemId).Result;
                             var result = new { success = false, name = "", variations = new List<object>() };
+
                             using (JsonDocument doc = JsonDocument.Parse(rawJson))
                             {
                                 if (doc.RootElement.TryGetProperty("response", out var r) && r.TryGetProperty("item_list", out var l) && l.GetArrayLength() > 0)
                                 {
                                     var item = l[0];
                                     string iName = item.GetProperty("item_name").GetString()!;
-                                    string defImg = "";
-                                    if (item.TryGetProperty("image", out var imgObj) && imgObj.TryGetProperty("image_url_list", out var iList)) defImg = iList[0].GetString()!;
+                                    string defImg = item.GetProperty("image").GetProperty("image_url_list")[0].GetString()!;
 
                                     var vars = new List<object>();
                                     if (item.TryGetProperty("model_list", out var ms))
@@ -187,13 +210,22 @@ namespace ShopeeServer
                                         foreach (var m in ms.EnumerateArray())
                                         {
                                             int stock = 0;
+                                            // Logic lấy Stock V2: stock_info_v2 -> summary_info -> total_available_stock
                                             if (m.TryGetProperty("stock_info_v2", out var si) && si.TryGetProperty("summary_info", out var sum))
                                                 stock = sum.GetProperty("total_available_stock").GetInt32();
-                                            else if (m.TryGetProperty("stock_info", out var oldSi))
-                                                stock = oldSi.EnumerateArray().First().GetProperty("normal_stock").GetInt32();
+                                            // Fallback V1
+                                            else if (m.TryGetProperty("stock_info", out var oldSi) && oldSi.GetArrayLength() > 0)
+                                                stock = oldSi[0].GetProperty("normal_stock").GetInt32();
 
                                             vars.Add(new { name = m.GetProperty("model_name").GetString(), stock = stock, img = defImg });
                                         }
+                                    }
+                                    else
+                                    {
+                                        int stock = 0;
+                                        if (item.TryGetProperty("stock_info_v2", out var si) && si.TryGetProperty("summary_info", out var sum))
+                                            stock = sum.GetProperty("total_available_stock").GetInt32();
+                                        vars.Add(new { name = "Mặc định", stock = stock, img = defImg });
                                     }
                                     result = new { success = true, name = iName, variations = vars };
                                 }

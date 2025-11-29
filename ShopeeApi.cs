@@ -14,11 +14,13 @@ namespace ShopeeServer
 {
     public static class ShopeeApiHelper
     {
+        // === CẤU HÌNH ===
         public static long PartnerId { get; private set; }
         public static string PartnerKey { get; private set; } = "";
         public static string BaseUrl { get; private set; } = "";
         public static string CallbackUrl { get; private set; } = "";
 
+        // === DỮ LIỆU ĐỘNG ===
         public static long ShopId { get; private set; }
         public static string AccessToken { get; private set; } = "";
         public static string RefreshToken { get; private set; } = "";
@@ -30,13 +32,18 @@ namespace ShopeeServer
         {
             try
             {
-                var builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                var builder = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
                 var config = builder.Build().GetSection("ShopeeSettings");
+
                 PartnerId = long.Parse(config["PartnerId"] ?? "0");
                 PartnerKey = config["PartnerKey"] ?? "";
                 BaseUrl = config["BaseUrl"] ?? "https://partner.shopeemobile.com";
                 CallbackUrl = config["CallbackUrl"] ?? "";
                 AppPassword = config["AppPassword"] ?? "";
+
                 long.TryParse(config["SavedShopId"], out long sid); ShopId = sid;
                 AccessToken = config["SavedAccessToken"] ?? "";
                 RefreshToken = config["SavedRefreshToken"] ?? "";
@@ -49,16 +56,28 @@ namespace ShopeeServer
             try
             {
                 string filePath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
-                string jsonString = File.Exists(filePath) ? File.ReadAllText(filePath) : "{}";
+                // Tạo file mới nếu chưa có
+                if (!File.Exists(filePath))
+                {
+                    var defaultJson = new { ShopeeSettings = new { PartnerId = PartnerId, PartnerKey = PartnerKey, BaseUrl = BaseUrl, CallbackUrl = CallbackUrl, SavedShopId = 0, SavedAccessToken = "", SavedRefreshToken = "" } };
+                    File.WriteAllText(filePath, JsonSerializer.Serialize(defaultJson));
+                }
+
+                string jsonString = File.ReadAllText(filePath);
                 var jsonNode = JsonNode.Parse(jsonString);
+
                 if (jsonNode != null)
                 {
                     jsonNode["ShopeeSettings"]!["SavedShopId"] = shopId;
                     jsonNode["ShopeeSettings"]!["SavedAccessToken"] = accessToken;
                     jsonNode["ShopeeSettings"]!["SavedRefreshToken"] = refreshToken;
-                    File.WriteAllText(filePath, jsonNode.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    File.WriteAllText(filePath, jsonNode.ToJsonString(options));
+
+                    ShopId = shopId; AccessToken = accessToken; RefreshToken = refreshToken;
+                    Console.WriteLine("[Config] Đã lưu Token mới.");
                 }
-                ShopId = shopId; AccessToken = accessToken; RefreshToken = refreshToken;
             }
             catch (Exception ex) { Console.WriteLine($"[Save Error] {ex.Message}"); }
         }
@@ -85,6 +104,7 @@ namespace ShopeeServer
 
         public static async Task<bool> RefreshTokenNow()
         {
+            Console.WriteLine("[Auto-Refresh] Đang gia hạn Token...");
             return await PostAuth("/api/v2/auth/access_token/get", new { partner_id = PartnerId, shop_id = ShopId, refresh_token = RefreshToken });
         }
 
@@ -107,8 +127,9 @@ namespace ShopeeServer
                     SaveTokenToConfig(sid, t.GetString()!, doc.RootElement.GetProperty("refresh_token").GetString()!);
                     return true;
                 }
+                Console.WriteLine($"[Auth Fail] {json}");
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Auth Ex] {ex.Message}"); }
             return false;
         }
 
@@ -125,25 +146,31 @@ namespace ShopeeServer
             foreach (var k in p) q[k.Key] = k.Value;
 
             using var client = new HttpClient();
-            return await client.GetStringAsync(QueryHelpers.AddQueryString(BaseUrl + path, q));
+            try { return await client.GetStringAsync(QueryHelpers.AddQueryString(BaseUrl + path, q)); }
+            catch (Exception ex) { return "{\"error\":\"network_error\"}"; }
         }
 
+        // --- API WRAPPERS ---
         public static async Task<string> GetOrderList(long fromDate, long toDate)
         {
-            var p = new Dictionary<string, string> { { "time_range_field", "create_time" }, { "time_from", fromDate.ToString() }, { "time_to", toDate.ToString() }, { "page_size", "50" }, { "order_status", "READY_TO_SHIP" } };
+            var p = new Dictionary<string, string> {
+                { "time_range_field", "create_time" }, { "time_from", fromDate.ToString() },
+                { "time_to", toDate.ToString() }, { "page_size", "100" }, { "order_status", "READY_TO_SHIP" }
+            };
             return await CallApi("/api/v2/order/get_order_list", p);
         }
 
         public static async Task<string> GetOrderDetails(string sns)
         {
-            return await CallApi("/api/v2/order/get_order_detail", new Dictionary<string, string> { { "order_sn_list", sns }, { "response_optional_fields", "item_list" } });
+            return await CallApi("/api/v2/order/get_order_detail", new Dictionary<string, string> {
+                { "order_sn_list", sns }, { "response_optional_fields", "item_list" }
+            });
         }
 
         public static async Task<string> GetItemBaseInfo(long itemId)
         {
             return await CallApi("/api/v2/product/get_item_base_info", new Dictionary<string, string> {
-                { "item_id_list", itemId.ToString() },
-                { "response_optional_fields", "model_list,image,stock_info" }
+                { "item_id_list", itemId.ToString() }, { "response_optional_fields", "model_list,image,stock_info_v2" }
             });
         }
     }

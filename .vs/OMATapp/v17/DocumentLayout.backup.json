@@ -1,30 +1,26 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\",
+  "WorkspaceRootPath": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.3.0\\shopeeapihelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:shopeeapihelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.3.0\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.3.0\\models.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:models.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.3.0\\htmltemplates.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.4.0\\htmltemplates.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:htmltemplates.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.3.0\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.4.0\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.3.0\\.editorconfig||{68B46364-D378-42F2-9E72-37D86C5F4468}",
-      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:.editorconfig||{68B46364-D378-42F2-9E72-37D86C5F4468}"
+      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.4.0\\models.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:models.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.4.0\\shopeeapi.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:shopeeapi.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|c:\\users\\ubiat\\onedrive - simpson strong-tie (prod)\\1. working\\2. omat\\shopeeapp\\c#\\omatapp v.4.0\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{CC08C5E1-7EE6-4E92-9251-6F6530E503F2}|OMATapp.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -34,7 +30,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -44,37 +40,36 @@
               "$type": "Document",
               "DocumentIndex": 4,
               "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\appsettings.json",
+              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\appsettings.json",
               "RelativeDocumentMoniker": "appsettings.json",
-              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\appsettings.json",
+              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\appsettings.json",
               "RelativeToolTip": "appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-11-29T04:51:08.363Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-29T04:51:08.363Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
               "Title": "HtmlTemplates.cs",
-              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\HtmlTemplates.cs",
+              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\HtmlTemplates.cs",
               "RelativeDocumentMoniker": "HtmlTemplates.cs",
-              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\HtmlTemplates.cs",
-              "RelativeToolTip": "HtmlTemplates.cs",
-              "ViewState": "AgIAAMcAAAAAAAAAAAAIwOkAAAABAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\HtmlTemplates.cs*",
+              "RelativeToolTip": "HtmlTemplates.cs*",
+              "ViewState": "AgIAAFYAAAAAAAAAAAAQwG4AAABYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-28T16:57:20.058Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "ShopeeApiHelper.cs",
-              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\ShopeeApiHelper.cs",
-              "RelativeDocumentMoniker": "ShopeeApiHelper.cs",
-              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\ShopeeApiHelper.cs",
-              "RelativeToolTip": "ShopeeApiHelper.cs",
-              "ViewState": "AgIAAHYAAAAAAAAAAAAuwIIAAAAAAAAAAAAAAA==",
+              "DocumentIndex": 3,
+              "Title": "ShopeeApi.cs",
+              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\ShopeeApi.cs",
+              "RelativeDocumentMoniker": "ShopeeApi.cs",
+              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\ShopeeApi.cs",
+              "RelativeToolTip": "ShopeeApi.cs",
+              "ViewState": "AgIAAIwAAAAAAAAAAAAWwJsAAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-28T16:57:00.817Z",
               "EditorCaption": ""
@@ -83,35 +78,24 @@
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "Models.cs",
-              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\Models.cs",
+              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\Models.cs",
               "RelativeDocumentMoniker": "Models.cs",
-              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\Models.cs",
+              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\Models.cs",
               "RelativeToolTip": "Models.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAABDAAAAAAAAAA==",
+              "ViewState": "AgIAABoAAAAAAAAAAAAwwCEAAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-28T16:56:42.401Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": ".editorconfig",
-              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\.editorconfig",
-              "RelativeDocumentMoniker": ".editorconfig",
-              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\.editorconfig",
-              "RelativeToolTip": ".editorconfig",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2025-11-28T16:47:14.003Z"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 1,
               "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\Program.cs",
+              "DocumentMoniker": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.3.0\\Program.cs*",
-              "RelativeToolTip": "Program.cs*",
-              "ViewState": "AgIAADAAAAAAAAAAAAAswEUAAAAMAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAHgAAAAAAAAAAAAWwIgAAAA3AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-27T17:27:00.317Z",
               "EditorCaption": ""

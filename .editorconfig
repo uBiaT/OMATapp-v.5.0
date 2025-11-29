@@ -26,6 +26,9 @@ csharp_style_expression_bodied_accessors = true:silent
 csharp_style_expression_bodied_lambdas = true:silent
 csharp_style_expression_bodied_local_functions = false:silent
 
+# CS0168: Variable is declared but never used
+dotnet_diagnostic.CS0168.severity = none
+
 [*.{cs,vb}]
 #### Naming styles ####
 
