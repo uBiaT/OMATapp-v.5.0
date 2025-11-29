@@ -128,9 +128,6 @@ C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.2.0\bin\Debug\net8.0\Templates\picking.html
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\bin\Debug\net8.0\OMATapp.exe
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\bin\Debug\net8.0\appsettings.json
-C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\bin\Debug\net8.0\Templates\home.html
-C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\bin\Debug\net8.0\Templates\layout.html
-C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\bin\Debug\net8.0\Templates\picking.html
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\bin\Debug\net8.0\OMATapp.deps.json
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\bin\Debug\net8.0\OMATapp.runtimeconfig.json
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\bin\Debug\net8.0\OMATapp.dll
@@ -160,3 +157,4 @@ C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\obj\Debug\net8.0\OMATapp.pdb
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\obj\Debug\net8.0\OMATapp.genruntimeconfig.cache
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\obj\Debug\net8.0\ref\OMATapp.dll
+C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.3.0\obj\Debug\net8.0\OMATapp.sourcelink.json

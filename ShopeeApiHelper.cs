@@ -10,191 +10,147 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 
-namespace ShopeeServer
+namespace ShopeeConsoleApp
 {
     public static class ShopeeApiHelper
     {
+        // --- CẤU HÌNH TĨNH (ĐỌC TỪ APPSETTINGS.JSON) ---
         public static long PartnerId { get; private set; }
-        public static string PartnerKey { get; private set; } = "";
-        public static string BaseUrl { get; private set; } = "";
-        public static string CallbackUrl { get; private set; } = "";
-
-        public static long ShopId { get; private set; }
-        public static string AccessToken { get; private set; } = "";
-        public static string RefreshToken { get; private set; } = "";
+        public static string PartnerKey { get; private set; } = string.Empty;
+        public static string BaseUrl { get; private set; } = string.Empty;
+        public static string RegisteredCallbackUri { get; private set; } = string.Empty;
         public static string AppPassword { get; private set; } = "";
+
+        // --- CẤU HÌNH ĐỘNG (ĐỌC TỪ TOKEN.JSON) ---
+        public static long SavedShopId { get; private set; }
+        public static string? SavedAccessToken { get; private set; }
+        public static string? SavedRefreshToken { get; private set; }
+
+        // API Endpoints
+        public const string AuthPath = "/api/v2/shop/auth_partner";
+        public const string TokenPath = "/api/v2/auth/token/get";
+        public const string RefreshPath = "/api/v2/auth/access_token/get";
+        public const string ShopInfoPath = "/api/v2/shop/get_shop_info";
+        public const string OrderListPath = "/api/v2/order/get_order_list";
+        public const string OrderDetailPath = "/api/v2/order/get_order_detail";
 
         static ShopeeApiHelper() { LoadConfig(); }
 
         private static void LoadConfig()
         {
+            // 1. ĐỌC FILE TĨNH (APPSETTINGS.JSON)
+            var builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            IConfiguration config = builder.Build();
+            var section = config.GetSection("ShopeeSettings");
+
+            PartnerId = long.Parse(section["PartnerId"] ?? "0");
+            PartnerKey = section["PartnerKey"] ?? string.Empty;
+            BaseUrl = section["BaseUrl"] ?? string.Empty;
+            RegisteredCallbackUri = section["CallbackUrl"] ?? string.Empty;
+            AppPassword = section["AppPassword"] ?? "";
+
+            // 2. ĐỌC FILE ĐỘNG (TOKEN.JSON) - NẾU CÓ
+            // File này nằm ở thư mục bin/Debug, không bị VS ghi đè
+            string tokenFilePath = Path.Combine(Directory.GetCurrentDirectory(), "token.json");
+            if (File.Exists(tokenFilePath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(tokenFilePath);
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+
+                    if (root.TryGetProperty("SavedShopId", out var sid)) SavedShopId = sid.GetInt64();
+                    if (root.TryGetProperty("SavedAccessToken", out var acc)) SavedAccessToken = acc.GetString();
+                    if (root.TryGetProperty("SavedRefreshToken", out var @ref)) SavedRefreshToken = @ref.GetString();
+                }
+                catch { /* Bỏ qua nếu file lỗi */ }
+            }
+        }
+
+        // LƯU TOKEN VÀO FILE TOKEN.JSON RIÊNG BIỆT
+        public static void SaveTokenToConfig(long shopId, string? accessToken, string? refreshToken)
+        {
             try
             {
-                var builder = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-                var config = builder.Build().GetSection("ShopeeSettings");
+                string filePath = Path.Combine(Directory.GetCurrentDirectory(), "token.json");
 
-                PartnerId = long.Parse(config["PartnerId"] ?? "0");
-                PartnerKey = config["PartnerKey"] ?? "";
-                BaseUrl = config["BaseUrl"] ?? "https://partner.shopeemobile.com";
-                CallbackUrl = config["CallbackUrl"] ?? "";
-                AppPassword = config["AppPassword"] ?? "";
+                var data = new
+                {
+                    SavedShopId = shopId,
+                    SavedAccessToken = accessToken ?? "",
+                    SavedRefreshToken = refreshToken ?? "",
+                    LastUpdated = DateTime.Now.ToString() // Lưu thêm thời gian để biết
+                };
 
-                long.TryParse(config["SavedShopId"], out long sid); ShopId = sid;
-                AccessToken = config["SavedAccessToken"] ?? "";
-                RefreshToken = config["SavedRefreshToken"] ?? "";
+                string jsonString = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(filePath, jsonString);
+
+                // Cập nhật RAM
+                SavedShopId = shopId;
+                SavedAccessToken = accessToken;
+                SavedRefreshToken = refreshToken;
             }
             catch { }
         }
 
-        public static void SaveTokenToConfig(long shopId, string accessToken, string refreshToken)
-        {
-            try
-            {
-                // 1. Xác định đường dẫn file thực thi (.exe)
-                string basePath = Directory.GetCurrentDirectory();
-                string filePath = Path.Combine(basePath, "appsettings.json");
-
-                Console.WriteLine($"[System] Đang lưu cấu hình vào: {filePath}");
-
-                // 2. Đọc file hoặc tạo mới nếu chưa có
-                string jsonString = "{}";
-                if (File.Exists(filePath))
-                {
-                    jsonString = File.ReadAllText(filePath);
-                }
-
-                // 3. Parse JSON bằng JsonNode (linh hoạt hơn)
-                var jsonNode = JsonNode.Parse(jsonString) ?? new JsonObject();
-
-                // 4. Kiểm tra và tạo Section "ShopeeSettings" nếu chưa có
-                if (jsonNode["ShopeeSettings"] == null)
-                {
-                    jsonNode["ShopeeSettings"] = new JsonObject();
-                }
-
-                // 5. Gán giá trị (Đảm bảo giữ nguyên các key khác như PartnerKey)
-                jsonNode["ShopeeSettings"]!["SavedShopId"] = shopId;
-                jsonNode["ShopeeSettings"]!["SavedAccessToken"] = accessToken;
-                jsonNode["ShopeeSettings"]!["SavedRefreshToken"] = refreshToken;
-
-                // 6. Ghi lại vào file (Format đẹp)
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(filePath, jsonNode.ToJsonString(options));
-
-                // 7. Cập nhật biến RAM
-                ShopId = shopId;
-                AccessToken = accessToken;
-                RefreshToken = refreshToken;
-
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"[Config] Đã lưu Token thành công!");
-                Console.ResetColor();
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"[Config Error] Lỗi nghiêm trọng khi lưu file: {ex.Message}");
-                Console.ResetColor();
-            }
-        }
-
-        // Tạo chữ ký (Auth = true dùng cho GetToken/RefreshToken)
-        public static string GenerateSignature(string path, long timeStamp, bool isAuth = false)
+        public static string GenerateSignature(string path, long timeStamp, string? accessToken = null, long shopId = 0)
         {
             string baseString = $"{PartnerId}{path}{timeStamp}";
-            if (!isAuth) baseString += $"{AccessToken}{ShopId}";
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(PartnerKey));
-            return BitConverter.ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(baseString))).Replace("-", "").ToLowerInvariant();
+            if (!string.IsNullOrEmpty(accessToken) && shopId > 0) baseString += $"{accessToken}{shopId}";
+            var key = Encoding.UTF8.GetBytes(PartnerKey);
+            using (var hmac = new HMACSHA256(key)) return BitConverter.ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(baseString))).Replace("-", "").ToLowerInvariant();
         }
 
-        public static string GetAuthUrl()
+        public static async Task<string> SendApiRequest(string apiPath, string? accessToken, long shopId, Dictionary<string, string?>? specificParams = null)
         {
-            long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            string sign = GenerateSignature("/api/v2/shop/auth_partner", ts, true);
-            return $"{BaseUrl}/api/v2/shop/auth_partner?partner_id={PartnerId}&timestamp={ts}&sign={sign}&redirect={CallbackUrl}";
-        }
-
-        // API 1: Đổi Code lấy Token
-        public static async Task<bool> ExchangeCodeForToken(long shopId, string code)
-        {
-            return await PostAuth("/api/v2/auth/token/get", new { partner_id = PartnerId, shop_id = shopId, code = code });
-        }
-
-        // API 2: Refresh Token (QUAN TRỌNG)
-        public static async Task<bool> RefreshTokenNow()
-        {
-            Console.WriteLine("[Auto-Refresh] Đang gia hạn Token...");
-            return await PostAuth("/api/v2/auth/access_token/get", new { partner_id = PartnerId, shop_id = ShopId, refresh_token = RefreshToken });
-        }
-
-        private static async Task<bool> PostAuth(string path, object body)
-        {
-            try
+            long timeStamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            string signature = GenerateSignature(apiPath, timeStamp, accessToken, shopId);
+            var queryParams = new Dictionary<string, string?> { { "partner_id", PartnerId.ToString() }, { "timestamp", timeStamp.ToString() }, { "access_token", accessToken }, { "shop_id", shopId.ToString() }, { "sign", signature } };
+            if (specificParams != null) foreach (var param in specificParams) queryParams.Add(param.Key, param.Value);
+            string fullUrl = QueryHelpers.AddQueryString($"{BaseUrl}{apiPath}", queryParams);
+            using (var client = new HttpClient())
             {
-                long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                string sign = GenerateSignature(path, ts, true); // Auth request
-                using var client = new HttpClient();
-                var resp = await client.PostAsync($"{BaseUrl}{path}?partner_id={PartnerId}&timestamp={ts}&sign={sign}",
-                    new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"));
-
-                var json = await resp.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("access_token", out var t))
-                {
-                    string acc = t.GetString()!;
-                    string refT = doc.RootElement.GetProperty("refresh_token").GetString()!;
-                    // Lấy ShopId từ response nếu có, hoặc dùng cái cũ
-                    long sid = ShopId;
-                    if (doc.RootElement.TryGetProperty("shop_id", out var s)) sid = s.GetInt64();
-
-                    SaveTokenToConfig(sid, acc, refT);
-                    return true;
-                }
-                Console.WriteLine($"[Auth Fail] {json}");
-            }
-            catch (Exception ex) { Console.WriteLine($"[Auth Ex] {ex.Message}"); }
-            return false;
-        }
-
-        // API CALLER CHUNG
-        public static async Task<string> CallApi(string path, Dictionary<string, string> p)
-        {
-            if (string.IsNullOrEmpty(AccessToken)) return "{\"error\":\"no_token\"}";
-
-            long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            string sign = GenerateSignature(path, ts);
-
-            var q = new Dictionary<string, string?> {
-                { "partner_id", PartnerId.ToString() }, { "timestamp", ts.ToString() },
-                { "access_token", AccessToken }, { "shop_id", ShopId.ToString() }, { "sign", sign }
-            };
-            foreach (var k in p) q[k.Key] = k.Value;
-
-            using var client = new HttpClient();
-            try
-            {
-                var response = await client.GetAsync(QueryHelpers.AddQueryString(BaseUrl + path, q));
-                // Quan trọng: Trả về nội dung kể cả lỗi 403 để Program.cs biết đường xử lý
-                return await response.Content.ReadAsStringAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Net Error] {ex.Message}");
-                return "{\"error\":\"network_error\"}";
+                try { return await (await client.GetAsync(fullUrl)).Content.ReadAsStringAsync(); }
+                catch (Exception ex) { return JsonSerializer.Serialize(new { error = "http_error", message = ex.Message }); }
             }
         }
 
-        public static async Task<string> GetOrderList(long fromDate, long toDate)
+        private static async Task<string> PostAuthRequest(string path, object body, long timeStamp)
         {
-            var p = new Dictionary<string, string> { { "time_range_field", "create_time" }, { "time_from", fromDate.ToString() }, { "time_to", toDate.ToString() }, { "page_size", "100" }, { "order_status", "READY_TO_SHIP" } };
-            return await CallApi("/api/v2/order/get_order_list", p);
+            string jsonBody = JsonSerializer.Serialize(body, new JsonSerializerOptions { WriteIndented = false });
+            string signature = GenerateSignature(path, timeStamp);
+            string fullUrl = $"{BaseUrl}{path}?partner_id={PartnerId}&timestamp={timeStamp}&sign={signature}";
+            using (var client = new HttpClient()) return await (await client.PostAsync(fullUrl, new StringContent(jsonBody, Encoding.UTF8, "application/json"))).Content.ReadAsStringAsync();
         }
 
-        public static async Task<string> GetOrderDetails(string sns)
+        public static async Task<string> GetShopInfo(string? accessToken, long shopId) => await SendApiRequest(ShopInfoPath, accessToken, shopId);
+
+        public static async Task<string> GetOrderList(string? accessToken, long shopId)
         {
-            return await CallApi("/api/v2/order/get_order_detail", new Dictionary<string, string> { { "order_sn_list", sns }, { "response_optional_fields", "item_list" } });
+            long fromDate = DateTimeOffset.UtcNow.AddDays(-14).ToUnixTimeSeconds();
+            var parameters = new Dictionary<string, string?> { { "time_range_field", "create_time" }, { "time_from", fromDate.ToString() }, { "time_to", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString() }, { "page_size", "50" }, { "order_status", "READY_TO_SHIP" } };
+            return await SendApiRequest(OrderListPath, accessToken, shopId, parameters);
+        }
+
+        public static async Task<string> GetOrderDetail(string? accessToken, long shopId, string orderSnList)
+        {
+            var parameters = new Dictionary<string, string?> { { "order_sn_list", orderSnList }, { "response_optional_fields", "item_list" } };
+            return await SendApiRequest(OrderDetailPath, accessToken, shopId, parameters);
+        }
+
+        public static async Task<string> ExchangeCodeForToken(long receivedShopId, string receivedCode)
+        {
+            long timeStamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var body = new { partner_id = PartnerId, shop_id = receivedShopId, code = receivedCode };
+            return await PostAuthRequest(TokenPath, body, timeStamp);
+        }
+
+        public static async Task<string> RefreshAccessToken(long shopId, string refreshToken)
+        {
+            long timeStamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var body = new { partner_id = PartnerId, shop_id = shopId, refresh_token = refreshToken };
+            return await PostAuthRequest(RefreshPath, body, timeStamp);
         }
     }
 }
