@@ -143,7 +143,7 @@ namespace ShopeeServer
             }
         }
 
-        static void StartServer()
+        static async void StartServer()
         {
             var listener = new HttpListener();
             listener.Prefixes.Add("http://+:8080/");
@@ -181,13 +181,12 @@ namespace ShopeeServer
                         lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.AssignedTo = u; }
                         resp.StatusCode = 200;
                     }
-                    else if (url == "/api/ship")
-                    {
-                        string id = req.QueryString["id"];
-                        lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.Status = 1; }
-                        resp.StatusCode = 200;
-                    }
-                    // API LẤY CHI TIẾT SẢN PHẨM (ĐÃ FIX LOGIC LẤY STOCK)
+                    //else if (url == "/api/ship")
+                    //{
+                    //    string id = req.QueryString["id"];
+                    //    lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.Status = 1; }
+                    //    resp.StatusCode = 200;
+                    //}
                     else if (url == "/api/product")
                     {
                         string sid = req.QueryString["id"];
@@ -233,6 +232,89 @@ namespace ShopeeServer
                             byte[] b = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(result));
                             resp.ContentType = "application/json"; resp.OutputStream.Write(b, 0, b.Length);
                         }
+                    }
+                    else if(url == "/api/ship" && req.HttpMethod == "POST")
+                    {
+                        string sn = req.QueryString["id"];
+                        Console.WriteLine($"[SHIP] Đang xử lý đơn: {sn}");
+
+                        // 1. Lấy thông tin vận chuyển
+                        //string paramJson = await ShopeeApiHelper.GetShippingParam(sn);
+                        //Console.WriteLine($"[SHIP] Shipping Param: {paramJson}");
+                        object shipPayload = null;
+
+                        //using (var doc = JsonDocument.Parse(paramJson))
+                        //{
+                            //if (doc.RootElement.TryGetProperty("response", out var r) && r.TryGetProperty("info_needed", out var info))
+                            //{
+                                // Case A: Pickup (Shipper đến lấy) -> Tự chọn địa chỉ đầu tiên
+                                //if (info.TryGetProperty("pickup", out var pick))
+                                //{
+                                    string addrId = "200028663";
+                                    shipPayload = new { order_sn = sn, pickup = new { address_id = long.Parse(addrId) } };
+                        //}
+                        // Case B: Dropoff (Gửi bưu cục)
+                        //else if (info.TryGetProperty("dropoff", out _))
+                        //{
+                        //shipPayload = new { order_sn = sn, dropoff = new { } };
+                        //}
+                        //}
+                        //}
+
+                        bool isShipped = false;
+                        // 2. Gọi lệnh Ship (Nếu chưa ship)
+                        if (shipPayload != null)
+                        {
+                            string shipRes = await ShopeeApiHelper.ShipOrder(shipPayload);
+                            // Nếu thành công hoặc đã ship rồi thì cho qua
+                            if (!shipRes.Contains("error") || shipRes.Contains("logistics.order_not_in_status"))
+                            {
+                                isShipped = true;
+                                Console.WriteLine($"[SHIP OK] {shipRes}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[SHIP ERROR] {shipRes}");
+                            }
+                        }
+
+                        //if (isShipped)
+                        //{
+                        //    // 3. Tạo Document
+                        //    await ShopeeApiHelper.CreateDoc(sn);
+
+                        //    // 4. Chờ file sẵn sàng (Thử lại 5 lần, mỗi lần 1s)
+                        //    byte[] pdfBytes = Array.Empty<byte>();
+                        //    for (int i = 0; i < 5; i++)
+                        //    {
+                        //        string res = await ShopeeApiHelper.GetDocResult(sn);
+                        //        if (res.Contains("\"status\":\"READY\""))
+                        //        {
+                        //            // 5. Tải file
+                        //            pdfBytes = await ShopeeApiHelper.DownloadDoc(sn);
+                        //            break;
+                        //        }
+                        //        Thread.Sleep(1000);
+                        //    }
+
+                        //    if (pdfBytes.Length > 0)
+                        //    {
+                        //        // Cập nhật trạng thái trong RAM
+                        //        lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == sn); if (o != null) o.Status = 1; }
+
+                        //        // Trả file PDF về trình duyệt
+                        //        resp.ContentType = "application/pdf";
+                        //        resp.AddHeader("Content-Disposition", $"inline; filename={sn}.pdf");
+                        //        resp.OutputStream.Write(pdfBytes, 0, pdfBytes.Length);
+                        //        resp.Close();
+                        //        continue; // Đã trả file, bỏ qua đoạn đóng resp mặc định
+                        //    }
+                        //}
+
+                        //// Nếu thất bại
+                        //byte[] err = Encoding.UTF8.GetBytes("{\"success\":false, \"message\":\"Lỗi tạo vận đơn\"}");
+                        //resp.ContentType = "application/json";
+                        //resp.OutputStream.Write(err, 0, err.Length);
                     }
                     resp.Close();
                 }

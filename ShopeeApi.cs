@@ -150,8 +150,27 @@ namespace ShopeeServer
             foreach (var k in p) q[k.Key] = k.Value;
 
             using var client = new HttpClient();
-            try { return await client.GetStringAsync(QueryHelpers.AddQueryString(BaseUrl + path, q)); }
-            catch (Exception ex) { return "{\"error\":\"network_error\"}"; }
+            Console.WriteLine(QueryHelpers.AddQueryString(BaseUrl + path, q));
+            //try { return await client.GetStringAsync(QueryHelpers.AddQueryString(BaseUrl + path, q)); }
+            //catch { return "{\"error\":\"network_error\"}"; }
+            var resp = await client.GetStringAsync(QueryHelpers.AddQueryString(BaseUrl + path, q));
+            return resp;
+        }
+        public static async Task<string> CallPost(string path, object body)
+        {
+            if (string.IsNullOrEmpty(AccessToken)) return "{\"error\":\"no_token\"}";
+            long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            string sign = GenerateSignature(path, ts);
+            string url = $"{BaseUrl}{path}?partner_id={PartnerId}&timestamp={ts}&access_token={AccessToken}&shop_id={ShopId}&sign={sign}";
+
+            using var client = new HttpClient();
+            var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+            try
+            {
+                var resp = await client.PostAsync(url, content);
+                return await resp.Content.ReadAsStringAsync();
+            }
+            catch { return "{\"error\":\"network_error\"}"; }
         }
 
         // --- API WRAPPERS ---
@@ -162,6 +181,21 @@ namespace ShopeeServer
                 { "time_to", toDate.ToString() }, { "page_size", "100" }, { "order_status", "READY_TO_SHIP" }
             };
             return await CallApi("/api/v2/order/get_order_list", p);
+        }
+        public static async Task<byte[]> Download(string path, object body)
+        {
+            long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            string url = $"{BaseUrl}{path}?partner_id={PartnerId}&timestamp={ts}&access_token={AccessToken}&shop_id={ShopId}&sign={GenerateSignature(path, ts)}";
+
+            using var client = new HttpClient();
+            var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+            try
+            {
+                var resp = await client.PostAsync(url, content);
+                if (resp.IsSuccessStatusCode) return await resp.Content.ReadAsByteArrayAsync();
+            }
+            catch { }
+            return Array.Empty<byte>();
         }
 
         public static async Task<string> GetOrderDetails(string sns)
@@ -177,5 +211,27 @@ namespace ShopeeServer
                 { "item_id_list", itemId.ToString() }, { "response_optional_fields", "model_list,image,stock_info_v2" }
             });
         }
+
+        // --- CÁC API LOGISTICS CỤ THỂ ---
+
+        // B1: Lấy tham số vận chuyển (Pickup hay Dropoff?)
+        public static async Task<string> GetShippingParam(string sn) =>
+            await CallApi("/api/v2/logistics/get_shipping_parameter", new Dictionary<string, string> { { "order_sn", sn } });
+
+        // B2: Báo chuẩn bị hàng
+        public static async Task<string> ShipOrder(object payload) =>
+            await CallPost("/api/v2/logistics/ship_order", payload);
+
+        // B3: Tạo yêu cầu in (In Nhiệt)
+        public static async Task<string> CreateDoc(string sn) =>
+            await CallPost("/api/v2/logistics/create_shipping_document", new { order_list = new[] { new { order_sn = sn } }, shipping_document_type = "THERMAL_AIR_WAYBILL" });
+
+        // B4: Kiểm tra trạng thái tạo file
+        public static async Task<string> GetDocResult(string sn) =>
+            await CallPost("/api/v2/logistics/get_shipping_document_result", new { order_list = new[] { new { order_sn = sn } } });
+
+        // B5: Tải file PDF
+        public static async Task<byte[]> DownloadDoc(string sn) =>
+            await Download("/api/v2/logistics/download_shipping_document", new { order_list = new[] { new { order_sn = sn } }, shipping_document_type = "THERMAL_AIR_WAYBILL" });
     }
 }
