@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\OMATapp.csproj": {}
+    "C:\\Users\\tatruong\\Source\\Repos\\OMATapp-v.4.0\\OMATapp.csproj": {}
   },
   "projects": {
-    "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\OMATapp.csproj": {
+    "C:\\Users\\tatruong\\Source\\Repos\\OMATapp-v.4.0\\OMATapp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\OMATapp.csproj",
+        "projectUniqueName": "C:\\Users\\tatruong\\Source\\Repos\\OMATapp-v.4.0\\OMATapp.csproj",
         "projectName": "OMATapp",
-        "projectPath": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\OMATapp.csproj",
-        "packagesPath": "C:\\Users\\uBiaT\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\uBiaT\\OneDrive - Simpson Strong-Tie (PROD)\\1. Working\\2. OMAT\\ShopeeApp\\C#\\OMATapp v.4.0\\obj\\",
+        "projectPath": "C:\\Users\\tatruong\\Source\\Repos\\OMATapp-v.4.0\\OMATapp.csproj",
+        "packagesPath": "C:\\Users\\tatruong\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\tatruong\\Source\\Repos\\OMATapp-v.4.0\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\uBiaT\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\tatruong\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],

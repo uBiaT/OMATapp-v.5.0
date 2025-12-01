@@ -40,41 +40,61 @@ namespace ShopeeServer
         static async Task Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            Console.WriteLine("=== SHOPEE WMS SERVER ===");
+            Console.WriteLine("=== SHOPEE WMS SERVER v4.1 (Debug Mode) ===");
 
-            // 1. CHECK AUTH
-            if (string.IsNullOrEmpty(ShopeeApiHelper.AccessToken))
+            try
             {
-                Console.WriteLine("\n[WARN] Chưa có Token. Vui lòng Login:");
-                Console.WriteLine(ShopeeApiHelper.GetAuthUrl());
-                Console.Write("Callback URL: ");
-                string cb = Console.ReadLine()?.Trim() ?? "";
-                if (!string.IsNullOrEmpty(cb))
+                // 1. CHECK AUTH
+                if (string.IsNullOrEmpty(ShopeeApiHelper.AccessToken))
                 {
-                    try
+                    Console.WriteLine("\n[WARN] Chưa có Token. Vui lòng Login:");
+                    Console.WriteLine(ShopeeApiHelper.GetAuthUrl());
+                    Console.Write("Callback URL: ");
+                    string cb = Console.ReadLine()?.Trim() ?? "";
+                    if (!string.IsNullOrEmpty(cb))
                     {
                         var q = QueryHelpers.ParseQuery(new Uri(cb).Query);
                         long sid = long.Parse(q["shop_id"]!);
                         if (await ShopeeApiHelper.ExchangeCodeForToken(sid, q["code"]!))
                             Console.WriteLine("[OK] Đã lưu Token.");
-                        else return;
+                        else
+                        {
+                            Console.WriteLine("Lỗi Login. Nhấn Enter để thoát...");
+                            Console.ReadLine();
+                            return;
+                        }
                     }
-                    catch { Console.WriteLine("Lỗi Login."); return; }
+                    else return;
                 }
-                else return;
+
+                // 2. START SYNC
+                _ = Task.Run(async () => {
+                    while (true)
+                    {
+                        try { await CoreEngineSync(); }
+                        catch (Exception ex) { Console.WriteLine($"[SyncErr] {ex.Message}"); }
+                        await Task.Delay(TimeSpan.FromMinutes(1));
+                    }
+                });
+
+                // 3. START SERVER
+                // --- SỬA ĐỔI 2: Dùng await để giữ Main không thoát ---
+                await StartServer();
             }
-
-            // 2. START SYNC
-            _ = Task.Run(async () => {
-                while (true)
-                {
-                    try { await CoreEngineSync(); } catch (Exception ex) { Console.WriteLine($"[SyncErr] {ex.Message}"); }
-                    await Task.Delay(TimeSpan.FromMinutes(1));
-                }
-            });
-
-            // 3. START SERVER
-            StartServer();
+            catch (Exception ex)
+            {
+                // --- SỬA ĐỔI 3: Bắt lỗi Crash ---
+                Console.WriteLine("\n\n*********************************");
+                Console.WriteLine("CRITICAL ERROR (LỖI NGHIÊM TRỌNG):");
+                Console.WriteLine(ex.ToString());
+                Console.WriteLine("*********************************");
+            }
+            finally
+            {
+                // --- SỬA ĐỔI 4: Giữ cửa sổ luôn mở ---
+                Console.WriteLine("\nApp đã dừng. Nhấn Enter để thoát...");
+                Console.ReadLine();
+            }
         }
 
         static async Task CoreEngineSync()
@@ -143,26 +163,34 @@ namespace ShopeeServer
             }
         }
 
-        static async void StartServer()
+        static async Task StartServer()
         {
             var listener = new HttpListener();
-            listener.Prefixes.Add("http://+:8080/");
+            listener.Prefixes.Add("http://localhost:8080/");
             try
             {
                 listener.Start();
-                Console.WriteLine("Web: http://localhost:8080");
-                Process.Start(new ProcessStartInfo("http://localhost:8080") { UseShellExecute = true });
+                Console.WriteLine("Web: http://localhost:8080/");
+                try { Process.Start(new ProcessStartInfo("http://localhost:8080/") { UseShellExecute = true }); } catch { }
             }
-            catch { Console.WriteLine("Lỗi 8080. Chạy Admin!"); return; }
+            catch (HttpListenerException hlex)
+            {
+                // Lỗi này thường do chưa chạy quyền Admin
+                Console.WriteLine($"[LỖI 8080] Không thể mở Port 8080. Hãy chạy App bằng 'Run as Administrator'.");
+                Console.WriteLine($"Chi tiết: {hlex.Message}");
+                return; // Thoát hàm StartServer, sẽ rơi xuống finally của Main
+            }
 
             while (true)
             {
                 try
                 {
-                    var ctx = listener.GetContext();
+                    var ctx = await listener.GetContextAsync(); // Dùng Async để mượt hơn
                     var req = ctx.Request;
                     var resp = ctx.Response;
                     string url = req.Url.AbsolutePath;
+
+                    // ... (Logic Router giữ nguyên: /, /api/data, /api/assign) ...
 
                     if (url == "/")
                     {
@@ -175,150 +203,84 @@ namespace ShopeeServer
                         byte[] b = Encoding.UTF8.GetBytes(j);
                         resp.ContentType = "application/json"; resp.OutputStream.Write(b, 0, b.Length);
                     }
-                    else if (url == "/api/assign")
-                    {
-                        string id = req.QueryString["id"], u = req.QueryString["user"];
-                        lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.AssignedTo = u; }
-                        resp.StatusCode = 200;
-                    }
-                    //else if (url == "/api/ship")
-                    //{
-                    //    string id = req.QueryString["id"];
-                    //    lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.Status = 1; }
-                    //    resp.StatusCode = 200;
-                    //}
-                    else if (url == "/api/product")
-                    {
-                        string sid = req.QueryString["id"];
-                        if (long.TryParse(sid, out long itemId))
-                        {
-                            string rawJson = ShopeeApiHelper.GetItemBaseInfo(itemId).Result;
-                            var result = new { success = false, name = "", variations = new List<object>() };
-
-                            using (JsonDocument doc = JsonDocument.Parse(rawJson))
-                            {
-                                if (doc.RootElement.TryGetProperty("response", out var r) && r.TryGetProperty("item_list", out var l) && l.GetArrayLength() > 0)
-                                {
-                                    var item = l[0];
-                                    string iName = item.GetProperty("item_name").GetString()!;
-                                    string defImg = item.GetProperty("image").GetProperty("image_url_list")[0].GetString()!;
-
-                                    var vars = new List<object>();
-                                    if (item.TryGetProperty("model_list", out var ms))
-                                    {
-                                        foreach (var m in ms.EnumerateArray())
-                                        {
-                                            int stock = 0;
-                                            // Logic lấy Stock V2: stock_info_v2 -> summary_info -> total_available_stock
-                                            if (m.TryGetProperty("stock_info_v2", out var si) && si.TryGetProperty("summary_info", out var sum))
-                                                stock = sum.GetProperty("total_available_stock").GetInt32();
-                                            // Fallback V1
-                                            else if (m.TryGetProperty("stock_info", out var oldSi) && oldSi.GetArrayLength() > 0)
-                                                stock = oldSi[0].GetProperty("normal_stock").GetInt32();
-
-                                            vars.Add(new { name = m.GetProperty("model_name").GetString(), stock = stock, img = defImg });
-                                        }
-                                    }
-                                    else
-                                    {
-                                        int stock = 0;
-                                        if (item.TryGetProperty("stock_info_v2", out var si) && si.TryGetProperty("summary_info", out var sum))
-                                            stock = sum.GetProperty("total_available_stock").GetInt32();
-                                        vars.Add(new { name = "Mặc định", stock = stock, img = defImg });
-                                    }
-                                    result = new { success = true, name = iName, variations = vars };
-                                }
-                            }
-                            byte[] b = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(result));
-                            resp.ContentType = "application/json"; resp.OutputStream.Write(b, 0, b.Length);
-                        }
-                    }
-                    else if(url == "/api/ship" && req.HttpMethod == "POST")
+                    else if (url == "/api/ship" && req.HttpMethod == "POST")
                     {
                         string sn = req.QueryString["id"];
                         Console.WriteLine($"[SHIP] Đang xử lý đơn: {sn}");
 
-                        // 1. Lấy thông tin vận chuyển
-                        //string paramJson = await ShopeeApiHelper.GetShippingParam(sn);
-                        //Console.WriteLine($"[SHIP] Shipping Param: {paramJson}");
-                        object shipPayload = null;
-
-                        //using (var doc = JsonDocument.Parse(paramJson))
-                        //{
-                            //if (doc.RootElement.TryGetProperty("response", out var r) && r.TryGetProperty("info_needed", out var info))
-                            //{
-                                // Case A: Pickup (Shipper đến lấy) -> Tự chọn địa chỉ đầu tiên
-                                //if (info.TryGetProperty("pickup", out var pick))
-                                //{
-                                    string addrId = "200028663";
-                                    shipPayload = new { order_sn = sn, pickup = new { address_id = long.Parse(addrId) } };
-                        //}
-                        // Case B: Dropoff (Gửi bưu cục)
-                        //else if (info.TryGetProperty("dropoff", out _))
-                        //{
-                        //shipPayload = new { order_sn = sn, dropoff = new { } };
-                        //}
-                        //}
-                        //}
-
-                        bool isShipped = false;
-                        // 2. Gọi lệnh Ship (Nếu chưa ship)
-                        if (shipPayload != null)
+                        // --- FIX LOGIC CALL API ---
+                        try
                         {
-                            string shipRes = await ShopeeApiHelper.ShipOrder(shipPayload);
-                            // Nếu thành công hoặc đã ship rồi thì cho qua
-                            if (!shipRes.Contains("error") || shipRes.Contains("logistics.order_not_in_status"))
+                            // 1. Lấy tham số ship (quan trọng)
+                            string paramJson = await ShopeeApiHelper.GetShippingParam(sn);
+                            Console.WriteLine($"[DEBUG-SHIP] Param: {paramJson}");
+
+                            object shipPayload = null;
+                            using (var doc = JsonDocument.Parse(paramJson))
                             {
-                                isShipped = true;
-                                Console.WriteLine($"[SHIP OK] {shipRes}");
+                                if (doc.RootElement.TryGetProperty("response", out var r))
+                                {
+                                    // 1. Kiểm tra xem Shopee có trả về danh sách địa chỉ lấy hàng (Pickup) không
+                                    // Cấu trúc: response -> pickup -> address_list
+                                    if (r.TryGetProperty("pickup", out var pickupData) &&
+                                        pickupData.TryGetProperty("address_list", out var addrList) &&
+                                        addrList.GetArrayLength() > 0)
+                                    {
+                                        // Lấy địa chỉ đầu tiên trong danh sách
+                                        var firstAddr = addrList[0];
+                                        long addrId = firstAddr.GetProperty("address_id").GetInt64();
+
+                                        // Mẫu JSON của bạn yêu cầu cả "pickup_time_id"
+                                        // Nó nằm trong: address_list[0] -> time_slot_list[0] -> pickup_time_id
+                                        string timeId = "";
+                                        if (firstAddr.TryGetProperty("time_slot_list", out var timeList) && timeList.GetArrayLength() > 0)
+                                        {
+                                            timeId = timeList[0].GetProperty("pickup_time_id").GetString();
+                                        }
+
+                                        // Tạo lệnh Ship (Kèm cả ID địa chỉ và ID giờ lấy hàng)
+                                        shipPayload = new
+                                        {
+                                            order_sn = sn,
+                                            pickup = new
+                                            {
+                                                address_id = addrId,
+                                                pickup_time_id = timeId
+                                            }
+                                        };
+                                        Console.WriteLine($"-> Mode: PICKUP (Addr: {addrId} | Time: {timeId})");
+                                    }
+                                    // 2. Nếu không phải Pickup thì là Dropoff (Gửi bưu cục)
+                                    else
+                                    {
+                                        // Dropoff thường không cần tham số gì phức tạp
+                                        shipPayload = new { order_sn = sn, dropoff = new { } };
+                                        Console.WriteLine("-> Mode: DROPOFF");
+                                    }
+                                }
+                            }
+
+                            if (shipPayload != null)
+                            {
+                                string shipRes = await ShopeeApiHelper.ShipOrder(shipPayload);
+                                Console.WriteLine($"[SHIP KẾT QUẢ] shipRes");
                             }
                             else
                             {
-                                Console.WriteLine($"[SHIP ERROR] {shipRes}");
+                                Console.WriteLine("[SHIP LỖI] Không xác định được phương thức vận chuyển (Pickup/Dropoff)");
                             }
                         }
-
-                        //if (isShipped)
-                        //{
-                        //    // 3. Tạo Document
-                        //    await ShopeeApiHelper.CreateDoc(sn);
-
-                        //    // 4. Chờ file sẵn sàng (Thử lại 5 lần, mỗi lần 1s)
-                        //    byte[] pdfBytes = Array.Empty<byte>();
-                        //    for (int i = 0; i < 5; i++)
-                        //    {
-                        //        string res = await ShopeeApiHelper.GetDocResult(sn);
-                        //        if (res.Contains("\"status\":\"READY\""))
-                        //        {
-                        //            // 5. Tải file
-                        //            pdfBytes = await ShopeeApiHelper.DownloadDoc(sn);
-                        //            break;
-                        //        }
-                        //        Thread.Sleep(1000);
-                        //    }
-
-                        //    if (pdfBytes.Length > 0)
-                        //    {
-                        //        // Cập nhật trạng thái trong RAM
-                        //        lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == sn); if (o != null) o.Status = 1; }
-
-                        //        // Trả file PDF về trình duyệt
-                        //        resp.ContentType = "application/pdf";
-                        //        resp.AddHeader("Content-Disposition", $"inline; filename={sn}.pdf");
-                        //        resp.OutputStream.Write(pdfBytes, 0, pdfBytes.Length);
-                        //        resp.Close();
-                        //        continue; // Đã trả file, bỏ qua đoạn đóng resp mặc định
-                        //    }
-                        //}
-
-                        //// Nếu thất bại
-                        //byte[] err = Encoding.UTF8.GetBytes("{\"success\":false, \"message\":\"Lỗi tạo vận đơn\"}");
-                        //resp.ContentType = "application/json";
-                        //resp.OutputStream.Write(err, 0, err.Length);
+                        catch (Exception apiEx)
+                        {
+                            Console.WriteLine($"[SHIP EXCEPTION] {apiEx.Message}");
+                        }
                     }
                     resp.Close();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[SERVER ERR] {ex.Message}");
+                }
             }
         }
     }

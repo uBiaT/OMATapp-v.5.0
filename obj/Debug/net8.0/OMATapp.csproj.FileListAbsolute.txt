@@ -190,3 +190,35 @@ C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.4.0\obj\Debug\net8.0\OMATapp.pdb
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.4.0\obj\Debug\net8.0\OMATapp.genruntimeconfig.cache
 C:\Users\uBiaT\OneDrive - Simpson Strong-Tie (PROD)\1. Working\2. OMAT\ShopeeApp\C#\OMATapp v.4.0\obj\Debug\net8.0\ref\OMATapp.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\appsettings.json
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\OMATapp.exe
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\OMATapp.deps.json
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\OMATapp.runtimeconfig.json
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\OMATapp.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\OMATapp.pdb
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.AspNetCore.WebUtilities.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Extensions.Configuration.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Abstractions.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Extensions.Configuration.FileExtensions.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Json.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Extensions.FileProviders.Abstractions.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Extensions.FileProviders.Physical.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Extensions.FileSystemGlobbing.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Extensions.Primitives.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\Microsoft.Net.Http.Headers.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\System.IO.Pipelines.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\System.Text.Encodings.Web.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\System.Text.Json.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.csproj.AssemblyReference.cache
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.AssemblyInfoInputs.cache
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.AssemblyInfo.cs
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.csproj.CoreCompileInputs.cache
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.sourcelink.json
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.csproj.Up2Date
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\refint\OMATapp.dll
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.pdb
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\OMATapp.genruntimeconfig.cache
+C:\Users\tatruong\Source\Repos\OMATapp-v.4.0\obj\Debug\net8.0\ref\OMATapp.dll

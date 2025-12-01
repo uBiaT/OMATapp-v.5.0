@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OMATapp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2e50bc2a5507ff58d411c4a90b5c587422babcf9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3e408c4b8e1e6cdc76f0314e9c0ed21fb37c0d0c")]
 [assembly: System.Reflection.AssemblyProductAttribute("OMATapp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OMATapp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
