@@ -38,7 +38,7 @@ namespace ShopeeServer
             catch { }
         }
 
-        private static readonly Regex LocationRegex = new Regex(@"\[(?<Shelf>\d+)N(?<Level>\d+)?(-(?<Box>\d+))?\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex LocationRegex = new Regex(@"\[(?<Shelf>\d{1,2})N(?<Level>\d)(?:-(?<Box>\d))?\]|\[T-(?<Bok>\d{1,2})\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public static Dictionary<string, string> GetItemLocation(string input)
         {
@@ -114,21 +114,10 @@ namespace ShopeeServer
 
             lock (_lock)
             {
-                // A. DỌN DẸP: Xóa đơn đang Status=0 (Chưa xử lý) trong RAM mà KHÔNG còn nằm trong danh sách READY của Shopee
-                // (Nghĩa là đơn đó đã bị Hủy, hoặc đã chuyển sang trạng thái khác)
+                // DỌN DẸP
                 int removed = _dbOrders.RemoveAll(o => o.Status == 0 && !readyIds.Contains(o.OrderId));
                 if (removed > 0) Log($"Đã làm sạch {removed} đơn cũ/hủy khỏi danh sách chờ.");
-
-                // B. CẬP NHẬT: Đơn nào trong RAM đang là 0 mà lại xuất hiện bên list PROCESSED -> Chuyển thành 1
-                foreach (var id in processedIds)
-                {
-                    var existing = _dbOrders.FirstOrDefault(o => o.OrderId == id);
-                    if (existing != null && existing.Status == 0)
-                    {
-                        existing.Status = 1;
-                        Log($"Đơn {id} đã được xử lý từ nơi khác -> Cập nhật Status = 1");
-                    }
-                }
+                removed = _dbOrders.RemoveAll(o => o.Status == 1 && !processedIds.Contains(o.OrderId));
             }
 
             // C. THÊM MỚI: Tải chi tiết cho những đơn chưa có trong RAM

@@ -70,7 +70,7 @@
     
     <div class='bg-white p-3 shadow-sm z-3'>
         <div class='d-flex justify-content-between align-items-center mb-2'>
-            <span class='fw-bold text-primary h5 mb-0'>KHO HÀNG</span>
+            <span class='fw-bold text-primary h5 mb-0'>SHOPEE WMS PRO</span>
             
             <div class='d-flex align-items-center bg-light rounded px-2 py-1 border'>
                 <i class='bi bi-dash-circle-fill text-secondary fs-5' style='cursor:pointer' @click='adjustZoom(-0.1)'></i>
@@ -79,7 +79,7 @@
             </div>
 
             <div class='btn-group'>
-                <button class='btn btn-sm' :class='currentView==""manager"" ? ""btn-primary"" : ""btn-outline-primary""' @click='currentView=""manager""'>Đơn</button>
+                <button class='btn btn-sm' :class='currentView==""manager"" ? ""btn-primary"" : ""btn-outline-primary""' @click='currentView=""manager""'>Đơn hàng</button>
                 <button class='btn btn-sm' :class='currentView==""logs"" ? ""btn-primary"" : ""btn-outline-primary""' @click='fetchLogs(); currentView=""logs""'>Log</button>
             </div>
         </div>
@@ -90,7 +90,7 @@
                 <li class='nav-item'><a class='nav-link py-1' :class='{active: tab===""processed""}' @click='tab=""processed""'>Đã xử lý ({{processedOrders.length}})</a></li>
             </ul>
 
-            <div class='d-flex align-items-center justify-content-between' v-if='tab===""unprocessed""'>
+            <div class='d-flex align-items-center justify-content-between'>
                 <div class='form-check ms-1'>
                     <input class='form-check-input big-checkbox' type='checkbox' id='checkAll' :checked='isAllSelected' @change='toggleSelectAll'>
                     <label class='form-check-label fw-bold ms-1 pt-1' for='checkAll'>Tất cả</label>
@@ -107,9 +107,10 @@
                             Áp dụng ({{selectedCount}})
                         </button>
                         <ul class='dropdown-menu dropdown-menu-end shadow'>
-                            <li><button class='dropdown-item py-2 fw-bold' @click='startPicking'><i class='bi bi-box-seam me-2'></i>Gom đơn đi nhặt</button></li>
+                            <li><button class='dropdown-item py-2 fw-bold' v-if='tab===""unprocessed""' @click='startPicking'><i class='bi bi-box-seam me-2'></i>Gom đơn</button></li>
+                            <li><button class='dropdown-item py-2 fw-bold' v-if='tab===""processed""' @click='printOrders'><i class='bi bi-box-seam me-2'></i>In đơn</button></li>
                             <li><hr class='dropdown-divider'></li>
-                            <li><button class='dropdown-item py-2' @click='batchAddNote'><i class='bi bi-pencil-square me-2'></i>Ghi chú hàng loạt</button></li>
+                            <li><button class='dropdown-item py-2' @click='batchAddNote'><i class='bi bi-pencil-square me-2'></i>Ghi chú</button></li>
                         </ul>
                     </div>
                 </div>
@@ -522,6 +523,7 @@
                 this.batchItems = Object.values(agg);
                 this.currentView = 'picking';
             },
+
             async showProductModal(item) {
                 this.loadingModal = true;
                 this.modalItem = { name: item.ModelName, img: item.ImageUrl }; 
