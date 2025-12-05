@@ -38,7 +38,7 @@ namespace ShopeeServer
             catch { }
         }
 
-        private static readonly Regex LocationRegex = new Regex(@"\[(?<Shelf>\d{1,2})N(?<Level>\d)(?:-(?<Box>\d))?\]|\[T-(?<Bok>\d{1,2})\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex LocationRegex = new Regex(@"\[(?<Shelf>\d{1,2})N(?<Level>\d)(?:-(?<Box>\d))?\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public static Dictionary<string, string> GetItemLocation(string input)
         {
@@ -132,7 +132,7 @@ namespace ShopeeServer
         static async Task<List<string>> FetchIds(string status, long from, long to)
         {
             string json = await ShopeeApiHelper.GetOrderList(from, to, status);
-            if (json.Contains("error") || !json.Contains("\"response\""))
+            if (!json.Contains("\"response\""))
             {
                 Log($"Lỗi lấy đơn {status}: {json}");
                 if (await ShopeeApiHelper.RefreshTokenNow())
@@ -182,10 +182,11 @@ namespace ShopeeServer
                                         ModelName = name,
                                         ImageUrl = it.GetProperty("image_info").GetProperty("image_url").GetString()!,
                                         Quantity = it.GetProperty("model_quantity_purchased").GetInt32(),
+                                        Price = it.GetProperty("model_discounted_price").GetInt32(),
                                         SKU = it.GetProperty("model_sku").GetString() ?? "",
-                                        Shelf = itemLocation.ContainsKey("Shelf") ? $"Kệ {itemLocation["Shelf"]}" : null,
-                                        Level = itemLocation.ContainsKey("Level") ? $" - Ngăn {itemLocation["Level"]}" : null,
-                                        Box = itemLocation.ContainsKey("Box") ? $" - Thùng {itemLocation["Box"]}" : null
+                                        Shelf = itemLocation.ContainsKey("Shelf") ? itemLocation["Shelf"] : null,
+                                        Level = itemLocation.ContainsKey("Level") ? itemLocation["Level"] : null,
+                                        Box = itemLocation.ContainsKey("Box") ? itemLocation["Box"] : null
                                     });
                                 }
                                 // Kiểm tra lần cuối để tránh trùng lặp
@@ -411,7 +412,27 @@ namespace ShopeeServer
                             Log($"[SHIP EXCEPTION] {apiEx.Message}");
                         }
                     }
+                    // 8. API NOTE
+                    else if (url == "/api/note" && req.HttpMethod == "POST")
+                    {
+                        string id = req.QueryString["id"];
 
+                        // Đọc nội dung ghi chú gửi lên từ Web
+                        using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                        string content = await reader.ReadToEndAsync();
+
+                        // Lưu vào RAM
+                        lock (_lock)
+                        {
+                            var o = _dbOrders.FirstOrDefault(x => x.OrderId == id);
+                            if (o != null) o.Note = content;
+                        }
+
+                        // Phản hồi OK
+                        resp.StatusCode = 200;
+                        byte[] b = Encoding.UTF8.GetBytes("OK");
+                        resp.OutputStream.Write(b, 0, b.Length);
+                    }
                     resp.Close();
                 }
                 catch (Exception ex)

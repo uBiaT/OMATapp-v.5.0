@@ -147,7 +147,10 @@
                         <input type='checkbox' class='form-check-input me-3 big-checkbox flex-shrink-0' v-model='order.Selected' @click.stop>
                         <div class='flex-grow-1 min-w-0'>
                             <div class='d-flex align-items-center'>
-                                <span style='font-family:monospace;font-size:1.1em'>#...<span class='highlight-sn'>{{order.OrderId.slice(-4)}}</span></span>
+                                <span style='font-family:monospace;font-size:1.1em'>
+                                    <span>{{order.OrderId.slice(0,-4)}}</span>
+                                    <span class='highlight-sn'>{{order.OrderId.slice(-4)}}</span>
+                                </span>
                                 <i class='bi bi-pencil-square text-secondary ms-2' style='cursor:pointer' @click.stop='editNote(order)'></i>
                             </div>
                             <div class='small text-muted'>{{ formatTime(order.CreatedAt) }}</div>
@@ -170,7 +173,10 @@
                                 <div class='product-name'>{{item.ProductName}}</div>
                                 <div class='variation-badge'>{{item.ModelName}}</div>
                                 <div v-if='item.Shelf' class='location-badge'>
-                                    <i class='bi bi-geo-alt-fill'></i> {{item.Shelf}}{{item.Level}}
+                                    <i class='bi bi-geo-alt-fill'> </i>
+                                    <span> Kệ {{item.Shelf}}</span>
+                                    <span v-if='item.Level'> - Ngăn {{item.Level}}</span>
+                                    <span v-if='item.Box'> - Thùng {{item.Box}}</span>
                                 </div>
                             </div>
                             <div class='qty-box'><span class='qty-text' :class='{red: item.Quantity > 1}'>x{{item.Quantity}}</span></div>
@@ -184,9 +190,9 @@
         </div>
 
         <div v-if='currentView === ""picking""'>
-            <div v-for='(group, loc) in groupedBatch' :key='loc'>
+            <div v-for='(group, shelf) in groupedBatch' :key='shelf'>
                 <div class='picking-group-header'>
-                    <span><i class='bi bi-geo-alt-fill'></i> {{loc}}</span>
+                    <span><i class='bi bi-geo-alt-fill'></i>Kệ {{shelf}}</span>
                     <span class='badge bg-white text-dark'>{{group.length}} loại</span>
                 </div>
                 <div v-for='item in group' class='card-item picking-card' :class='getPickingCardClass(item)'>
@@ -197,6 +203,11 @@
                         <div class='info-box'>
                             <div class='product-name'>{{item.ProductName}}</div>
                             <div class='variation-badge'>{{item.ModelName}}</div>
+                            <div v-if='item.Level' class='location-badge'>
+                                <i class='bi bi-geo-alt-fill'></i>
+                                <span> Ngăn {{item.Level}}</span>
+                                <span v-if='item.Box'> - Thùng {{item.Box}}</span>
+                            </div>
                             <div class='small text-muted mt-1'>
                                 Đơn: <span v-for='id in item.OrderIds' class='badge bg-light text-dark border me-1'>{{id}}</span>
                             </div>
@@ -255,7 +266,6 @@
                                  @touchstart='modalTouchStart'
                                  @touchend='modalTouchEnd'>
                             <h6 class='fw-bold text-dark px-2'>{{modalItem.name}}</h6>
-                            <div class='text-muted small fst-italic'>*Vuốt ảnh lên/xuống để chuyển loại</div>
                         </div>
                         <div class='card bg-light border-0'>
                             <div class='card-body p-0' style='max-height:120px;overflow-y:auto'>
@@ -307,7 +317,7 @@
             groupedBatch() {
                 const groups = {};
                 this.batchItems.forEach(i => {
-                    const key = i.Location || 'Khác';
+                    const key = i.Shelf || 'chưa xác định';
                     if(!groups[key]) groups[key] = [];
                     groups[key].push(i);
                 });
@@ -512,7 +522,9 @@
                             ProductName: item.ProductName, 
                             ModelName: item.ModelName, 
                             ImageUrl: item.ImageUrl, 
-                            Location: item.Shelf || 'Chưa định vị', 
+                            Shelf: item.Shelf,
+                            Level: item.Level,
+                            Box: item.Box,
                             TotalQty: 0, OrderIds: [], Picked: false,
                             ItemId: item.ItemId 
                         };

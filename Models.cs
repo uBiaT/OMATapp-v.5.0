@@ -12,6 +12,7 @@ namespace ShopeeServer
 
         // UI Helper (Không lưu DB)
         public bool Selected { get; set; } = false;
+        public string Note { get; set; } = ""; // Ghi chú đơn hàng
     }
 
     public class OrderItem
@@ -21,11 +22,12 @@ namespace ShopeeServer
         public string ProductName { get; set; } = ""; // Tên sản phẩm
         public string ImageUrl { get; set; } = "";
         public int Quantity { get; set; }
+        public int Price { get; set; }
         public string SKU { get; set; } = "";
         public string? Shelf { get; set; }
         public string? Level { get; set; }
         public string? Box { get; set; }
-        public string? loc { get; set; }
+
 
         // Thuộc tính dùng cho giao diện Batch Picking
         public bool Picked { get; set; } = false;

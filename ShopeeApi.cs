@@ -157,7 +157,7 @@ namespace ShopeeServer
             string requestUrl = QueryHelpers.AddQueryString(BaseUrl + path, q);
 
             // In ra Console (màu xám hoặc vàng) để dễ nhìn
-            Program.Log($"[API-GET] {requestUrl}");
+            Program.Log($"[API-GET] {path}");
 
             using var client = new HttpClient();
 
@@ -169,7 +169,7 @@ namespace ShopeeServer
                 // Nếu Shopee trả về lỗi (403, 400, 500...), ném lỗi ra catch
                 response.EnsureSuccessStatusCode();
 
-                Program.Log(await response.Content.ReadAsStringAsync());
+                //Program.Log(await response.Content.ReadAsStringAsync());
 
                 return await response.Content.ReadAsStringAsync();
             }
