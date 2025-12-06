@@ -55,7 +55,7 @@
         .console-box { background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 10px; border-radius: 6px; height: 400px; overflow-y: auto; font-size: 12px; border: 1px solid #444; }
         .log-line { border-bottom: 1px solid #333; padding: 2px 0; white-space: pre-wrap; word-break: break-all; }
         
-        .note-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.9em; margin-top: 4px; display:inline-block; font-weight:bold; }
+        .note-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7em; margin-top: 4px; display:inline-block; font-weight:bold; }
         .note-badge.normal { background: #ffecb3; color: #856404; border: 1px solid #ffeeba; }
         .note-badge.green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .note-badge.red { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
@@ -145,13 +145,6 @@
                 <div class='order-header' :class='{active: openOrderId === order.OrderId}' @click='toggleOrder(order.OrderId)'>
                     <div class='d-flex align-items-start w-100'>
                         <input type='checkbox' class='form-check-input me-3 big-checkbox flex-shrink-0' v-model='order.Selected' @click.stop>
-                        <div class='me-2' @click.stop='editNote(order)'>
-                            <i v-if='!order.Note' class='bi bi-pencil-square text-secondary' style='font-size:1.2rem; cursor:pointer'></i>
-        
-                            <div v-else class='badge bg-warning text-dark text-wrap text-start border border-dark' style='max-width:150px; cursor:pointer'>
-                                <i class='bi bi-sticky-fill'></i> {{order.Note}}
-                            </div>
-                        </div>
                         <div class='flex-grow-1 min-w-0'>
                             <div class='d-flex align-items-center'>
                                 <span style='font-family:monospace;font-size:1.1em'>
@@ -305,7 +298,6 @@
                 zoomLevel: 1.0,
                 confirmMessage: '', pendingConfirmAction: null, confirmModalInstance: null,
                 pullStartY: 0, pullHeight: 0, isRefreshing: false,
-                // SWIPE VARIABLES
                 modalTouchStartY: 0, modalTouchEndY: 0
             }
         },
@@ -324,7 +316,7 @@
             groupedBatch() {
                 const groups = {};
                 this.batchItems.forEach(i => {
-                    const key = i.Shelf || 'chưa xác định';
+                    const key = i.Location || 'Khác';
                     if(!groups[key]) groups[key] = [];
                     groups[key].push(i);
                 });
@@ -341,7 +333,7 @@
         },
         mounted() {
             this.fetchData();
-            setInterval(this.fetchData, 5000);
+            setInterval(this.fetchData, 3000); // Tăng tốc độ cập nhật lên 3s để đồng bộ nhanh hơn
             setInterval(this.fetchLogs, 3000);
             this.updateZoom();
             this.confirmModalInstance = new bootstrap.Modal(document.getElementById('confirmModal'));
@@ -351,116 +343,87 @@
             updateZoom() { document.body.style.zoom = this.zoomLevel; },
             adjustZoom(delta) { this.zoomLevel = Math.max(0.6, Math.min(1.4, parseFloat(this.zoomLevel) + delta)); this.updateZoom(); },
 
-            pullStart(e) {
-                if (this.$refs.scrollContainer.scrollTop === 0) {
-                    this.pullStartY = e.touches[0].clientY;
-                }
-            },
+            pullStart(e) { if (this.$refs.scrollContainer.scrollTop === 0) this.pullStartY = e.touches[0].clientY; },
             pullMove(e) {
                 if (this.pullStartY > 0 && !this.isRefreshing) {
                     const y = e.touches[0].clientY;
                     const diff = y - this.pullStartY;
-                    if (diff > 0) {
-                        this.pullHeight = diff > 80 ? 80 : diff;
-                    }
+                    if (diff > 0) this.pullHeight = diff > 80 ? 80 : diff;
                 }
             },
             pullEnd(e) {
                 if (this.pullHeight > 60) {
-                    this.isRefreshing = true;
-                    this.pullHeight = 50;
-                    this.fetchData().then(() => {
-                        setTimeout(() => {
-                            this.isRefreshing = false;
-                            this.pullHeight = 0;
-                        }, 500);
-                    });
-                } else {
-                    this.pullHeight = 0;
-                }
+                    this.isRefreshing = true; this.pullHeight = 50;
+                    this.fetchData().then(() => { setTimeout(() => { this.isRefreshing = false; this.pullHeight = 0; }, 500); });
+                } else { this.pullHeight = 0; }
                 this.pullStartY = 0;
             },
 
-            // --- SWIPE LOGIC FOR MODAL ---
-            modalTouchStart(e) {
-                this.modalTouchStartY = e.changedTouches[0].screenY;
-            },
+            modalTouchStart(e) { this.modalTouchStartY = e.changedTouches[0].screenY; },
             modalTouchEnd(e) {
                 this.modalTouchEndY = e.changedTouches[0].screenY;
-                this.handleModalSwipe();
-            },
-            handleModalSwipe() {
                 const diff = this.modalTouchStartY - this.modalTouchEndY;
-                // Threshold 50px
                 if (Math.abs(diff) < 50) return;
-
                 const currentIdx = this.variations.findIndex(v => v.name === this.modalItem.name);
                 if (currentIdx === -1) return;
-
-                let nextIdx = -1;
-                
-                if (diff > 0) { // Vuốt lên -> Next (xuống dưới danh sách)
-                    nextIdx = (currentIdx + 1) % this.variations.length;
-                } else { // Vuốt xuống -> Prev (lên trên danh sách)
-                    nextIdx = (currentIdx - 1 + this.variations.length) % this.variations.length;
-                }
-
-                if (nextIdx !== -1) {
-                    this.selectVariation(this.variations[nextIdx]);
-                }
+                let nextIdx = diff > 0 ? (currentIdx + 1) % this.variations.length : (currentIdx - 1 + this.variations.length) % this.variations.length;
+                this.selectVariation(this.variations[nextIdx]);
             },
 
+            // --- HÀM FETCH DATA ĐÃ SỬA LỖI ĐỒNG BỘ ---
             async fetchData() {
                 try {
                     const res = await fetch('/api/data');
                     const data = await res.json();
-        
                     this.hasToken = data.hasToken;
                     this.loginUrl = data.loginUrl;
-        
-                    // Tạo map để tra cứu trạng thái ""Selected"" cũ nhanh hơn
+                    
                     const oldMap = new Map(this.orders.map(o => [o.OrderId, o]));
-
-                    // --- KHẮC PHỤC LỖI KHÔNG ĐỒNG BỘ NOTE ---
-                    // Luôn cập nhật lại danh sách, nhưng giữ lại trạng thái ""Selected"" của máy đang dùng
+                    
+                    // Luôn cập nhật danh sách mới từ Server về
                     this.orders = data.orders.map(o => {
                         const old = oldMap.get(o.OrderId);
                         return { 
                             ...o, 
-                            // Giữ lại Selected (để không bị mất tick khi đang gom đơn)
+                            // Giữ lại trạng thái Selected cục bộ
                             Selected: old ? old.Selected : false, 
-                            // Lấy Note từ Server (o.Note), nếu Server rỗng thì mới lấy local
-                            Note: o.Note || '' 
+                            // Ưu tiên lấy Note từ Server. Nếu Server rỗng thì giữ Note cũ (tránh nháy)
+                            Note: o.Note || (old ? old.Note : '') 
                         };
                     });
-        
-                } catch(e) { console.error(e); }
+                } catch(e) {}
             },
+
             async fetchLogs() { if(this.currentView === 'logs') { const res = await fetch('/api/logs'); this.logs = await res.json(); } },
             async doLogin() { 
                 if(!this.callbackUrl) return;
-                try {
-                    await fetch('/api/login', { method: 'POST', body: JSON.stringify({url: this.callbackUrl}) });
-                    alert('Đã gửi yêu cầu đăng nhập!');
-                    this.callbackUrl = '';
-                } catch(e) { alert('Lỗi mạng'); }
+                try { await fetch('/api/login', { method: 'POST', body: JSON.stringify({url: this.callbackUrl}) }); alert('Đã gửi yêu cầu đăng nhập!'); this.callbackUrl = ''; } catch(e) { alert('Lỗi mạng'); }
             },
             
-            toggleSelectAll(e) {
-                const checked = e.target.checked;
-                this.filteredOrders.forEach(o => o.Selected = checked);
-            },
+            toggleSelectAll(e) { const checked = e.target.checked; this.filteredOrders.forEach(o => o.Selected = checked); },
             toggleOrder(id) { this.openOrderId = (this.openOrderId === id) ? null : id; },
 
+            // --- HÀM SỬA NOTE ĐÃ CÓ GỬI VỀ SERVER ---
             editNote(order) {
                 const current = order.Note || '';
-                const input = prompt('Nhập ghi chú:', current);
-                if (input !== null) order.Note = input;
+                const input = prompt('Nhập ghi chú (Lưu vào Server):', current);
+                if (input !== null) {
+                    order.Note = input; // Cập nhật hiển thị ngay lập tức
+                    // Gửi API
+                    fetch(`/api/note?id=${order.OrderId}`, { method: 'POST', body: input });
+                }
             },
+            
             batchAddNote() {
                 const input = prompt('Nhập ghi chú cho ' + this.selectedCount + ' đơn:');
-                if (input !== null) this.orders.filter(o => o.Selected).forEach(o => o.Note = input);
+                if (input !== null) {
+                    this.orders.filter(o => o.Selected).forEach(o => {
+                        o.Note = input;
+                        fetch(`/api/note?id=${o.OrderId}`, { method: 'POST', body: input });
+                    });
+                }
             },
+
             getNoteClass(note) {
                 if (!note) return '';
                 if (note.toLowerCase() === 'đã soạn') return 'green';
@@ -468,65 +431,34 @@
                 return 'normal';
             },
             getPickingCardClass(item) {
-                return {
-                    'done': item.Picked,
-                    'highlight-error': this.showUnpickedHighlight && !item.Picked
-                };
+                return { 'done': item.Picked, 'highlight-error': this.showUnpickedHighlight && !item.Picked };
             },
-
-            showConfirm(msg, action) {
-                this.confirmMessage = msg;
-                this.pendingConfirmAction = action;
-                this.confirmModalInstance.show();
-            },
-            executeConfirm() {
-                if(this.pendingConfirmAction) this.pendingConfirmAction();
-                this.confirmModalInstance.hide();
-            },
-
-            confirmShip(id) {
-                this.showConfirm('Bạn chắc chắn muốn chuẩn bị đơn này?', () => {
-                    this.shipOrder(id);
-                });
-            },
-
+            showConfirm(msg, action) { this.confirmMessage = msg; this.pendingConfirmAction = action; this.confirmModalInstance.show(); },
+            executeConfirm() { if(this.pendingConfirmAction) this.pendingConfirmAction(); this.confirmModalInstance.hide(); },
+            
+            confirmShip(id) { this.showConfirm('Bạn chắc chắn muốn chuẩn bị đơn này?', () => { this.shipOrder(id); }); },
             finishPicking() {
                 const unpicked = this.batchItems.filter(i => !i.Picked);
-                if (unpicked.length === 0) {
-                    this.applyNoteToOrders(this.batchItems, 'Đã soạn');
-                    this.closePicking();
-                } else {
-                    this.showUnpickedHighlight = true;
-                    this.showConfirm('Còn ' + unpicked.length + ' loại chưa nhặt. Vẫn hoàn thành và đánh dấu lỗi?', () => {
-                        const picked = this.batchItems.filter(i => i.Picked);
-                        this.applyNoteToOrders(picked, 'Đã soạn');
-                        this.applyNoteToOrders(unpicked, 'Chưa soạn');
-                        this.closePicking();
-                    });
-                }
+                if (unpicked.length === 0) { this.applyNoteToOrders(this.batchItems, 'Đã soạn'); this.closePicking(); } 
+                else { this.showUnpickedHighlight = true; this.showConfirm('Còn ' + unpicked.length + ' loại chưa nhặt. Vẫn hoàn thành?', () => { const picked = this.batchItems.filter(i => i.Picked); this.applyNoteToOrders(picked, 'Đã soạn'); this.applyNoteToOrders(unpicked, 'Chưa soạn'); this.closePicking(); }); }
             },
             applyNoteToOrders(items, note) {
                 items.forEach(item => {
                     item.OrderIds.forEach(shortId => {
                         const order = this.orders.find(o => o.OrderId.endsWith(shortId) && o.Selected);
                         if (order) {
-                            if (note === 'Đã soạn' && order.Note === 'Chưa soạn') return;
                             order.Note = note;
+                            fetch(`/api/note?id=${order.OrderId}`, { method: 'POST', body: note });
                         }
                     });
                 });
             },
-            closePicking() {
-                this.isBatchMode = false;
-                this.orders.forEach(o => o.Selected = false);
-                this.currentView = 'manager';
-                this.showUnpickedHighlight = false;
-            },
-
+            closePicking() { this.isBatchMode = false; this.orders.forEach(o => o.Selected = false); this.currentView = 'manager'; this.showUnpickedHighlight = false; },
+            
             async shipOrder(id) { 
                 await fetch(`/api/ship?id=${id}`, {method: 'POST'}); 
                 const o = this.orders.find(x => x.OrderId === id); 
-                if(o) { o.Status = 1; o.Selected = false; }
+                if(o) { o.Status = 1; o.Selected = false; } 
                 this.openOrderId = null; 
             },
             startPicking() {
@@ -536,16 +468,7 @@
                 selected.forEach(order => {
                     order.Items.forEach(item => {
                         const key = item.ModelName; 
-                        if(!agg[key]) agg[key] = { 
-                            ProductName: item.ProductName, 
-                            ModelName: item.ModelName, 
-                            ImageUrl: item.ImageUrl, 
-                            Shelf: item.Shelf,
-                            Level: item.Level,
-                            Box: item.Box,
-                            TotalQty: 0, OrderIds: [], Picked: false,
-                            ItemId: item.ItemId 
-                        };
+                        if(!agg[key]) agg[key] = { ProductName: item.ProductName, ModelName: item.ModelName, ImageUrl: item.ImageUrl, Location: item.Shelf || 'Chưa định vị', TotalQty: 0, OrderIds: [], Picked: false, ItemId: item.ItemId };
                         agg[key].TotalQty += item.Quantity;
                         agg[key].OrderIds.push(order.OrderId.slice(-4));
                     });
@@ -553,39 +476,15 @@
                 this.batchItems = Object.values(agg);
                 this.currentView = 'picking';
             },
-
             async showProductModal(item) {
-                this.loadingModal = true;
-                this.modalItem = { name: item.ModelName, img: item.ImageUrl }; 
-                this.variations = [];
+                this.loadingModal = true; this.modalItem = { name: item.ModelName, img: item.ImageUrl }; this.variations = [];
                 new bootstrap.Modal(document.getElementById('productModal')).show();
                 try {
                     const res = await fetch('/api/product?id=' + item.ItemId);
                     const data = await res.json();
-                    if(data.success) {
-                        this.variations = data.variations;
-                        const current = this.variations.find(v => v.name === item.ModelName);
-                        if(current) this.modalItem = { ...current, name: current.name, img: current.img };
-                    }
+                    if(data.success) { this.variations = data.variations; const current = this.variations.find(v => v.name === item.ModelName); if(current) this.modalItem = { ...current, name: current.name, img: current.img }; }
                 } catch(e) {}
                 this.loadingModal = false;
-            },
-            editNote(order) {
-                // Hiện hộp thoại nhập liệu
-                const oldNote = order.Note || '';
-                const newNote = prompt('Ghi chú nội bộ (Sẽ mất khi tắt Server):', oldNote);
-    
-                // Nếu người dùng bấm OK (không bấm Cancel)
-                if (newNote !== null && newNote !== oldNote) {
-                    // 1. Cập nhật giao diện ngay lập tức (cho nhanh)
-                    order.Note = newNote;
-        
-                    // 2. Gửi về Server để lưu vào RAM (để máy khác cũng thấy)
-                    fetch(`/api/note?id=${order.OrderId}`, { 
-                        method: 'POST', 
-                        body: newNote 
-                    });
-                }
             },
             selectVariation(v) { this.modalItem = { name: v.name, img: v.img }; }
         }

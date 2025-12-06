@@ -416,19 +416,16 @@ namespace ShopeeServer
                     else if (url == "/api/note" && req.HttpMethod == "POST")
                     {
                         string id = req.QueryString["id"];
-
-                        // Đọc nội dung ghi chú gửi lên từ Web
                         using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
                         string content = await reader.ReadToEndAsync();
 
-                        // Lưu vào RAM
                         lock (_lock)
                         {
                             var o = _dbOrders.FirstOrDefault(x => x.OrderId == id);
                             if (o != null) o.Note = content;
                         }
 
-                        // Phản hồi OK
+                        Log($"[NOTE] Đơn {id}: {content}"); // Ghi log để bạn biết có hoạt động
                         resp.StatusCode = 200;
                         byte[] b = Encoding.UTF8.GetBytes("OK");
                         resp.OutputStream.Write(b, 0, b.Length);
