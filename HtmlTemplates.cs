@@ -145,6 +145,13 @@
                 <div class='order-header' :class='{active: openOrderId === order.OrderId}' @click='toggleOrder(order.OrderId)'>
                     <div class='d-flex align-items-start w-100'>
                         <input type='checkbox' class='form-check-input me-3 big-checkbox flex-shrink-0' v-model='order.Selected' @click.stop>
+                        <div class='me-2' @click.stop='editNote(order)'>
+                            <i v-if='!order.Note' class='bi bi-pencil-square text-secondary' style='font-size:1.2rem; cursor:pointer'></i>
+        
+                            <div v-else class='badge bg-warning text-dark text-wrap text-start border border-dark' style='max-width:150px; cursor:pointer'>
+                                <i class='bi bi-sticky-fill'></i> {{order.Note}}
+                            </div>
+                        </div>
                         <div class='flex-grow-1 min-w-0'>
                             <div class='d-flex align-items-center'>
                                 <span style='font-family:monospace;font-size:1.1em'>
@@ -407,16 +414,27 @@
                 try {
                     const res = await fetch('/api/data');
                     const data = await res.json();
+        
                     this.hasToken = data.hasToken;
                     this.loginUrl = data.loginUrl;
+        
+                    // Tạo map để tra cứu trạng thái ""Selected"" cũ nhanh hơn
                     const oldMap = new Map(this.orders.map(o => [o.OrderId, o]));
-                    if(JSON.stringify(this.orders.map(o=>o.OrderId)) !== JSON.stringify(data.orders.map(o=>o.OrderId))) {
-                         this.orders = data.orders.map(o => {
-                             const old = oldMap.get(o.OrderId);
-                             return { ...o, Selected: old ? old.Selected : false, Note: old ? old.Note : '' };
-                         });
-                    }
-                } catch(e) {}
+
+                    // --- KHẮC PHỤC LỖI KHÔNG ĐỒNG BỘ NOTE ---
+                    // Luôn cập nhật lại danh sách, nhưng giữ lại trạng thái ""Selected"" của máy đang dùng
+                    this.orders = data.orders.map(o => {
+                        const old = oldMap.get(o.OrderId);
+                        return { 
+                            ...o, 
+                            // Giữ lại Selected (để không bị mất tick khi đang gom đơn)
+                            Selected: old ? old.Selected : false, 
+                            // Lấy Note từ Server (o.Note), nếu Server rỗng thì mới lấy local
+                            Note: o.Note || '' 
+                        };
+                    });
+        
+                } catch(e) { console.error(e); }
             },
             async fetchLogs() { if(this.currentView === 'logs') { const res = await fetch('/api/logs'); this.logs = await res.json(); } },
             async doLogin() { 
@@ -551,6 +569,23 @@
                     }
                 } catch(e) {}
                 this.loadingModal = false;
+            },
+            editNote(order) {
+                // Hiện hộp thoại nhập liệu
+                const oldNote = order.Note || '';
+                const newNote = prompt('Ghi chú nội bộ (Sẽ mất khi tắt Server):', oldNote);
+    
+                // Nếu người dùng bấm OK (không bấm Cancel)
+                if (newNote !== null && newNote !== oldNote) {
+                    // 1. Cập nhật giao diện ngay lập tức (cho nhanh)
+                    order.Note = newNote;
+        
+                    // 2. Gửi về Server để lưu vào RAM (để máy khác cũng thấy)
+                    fetch(`/api/note?id=${order.OrderId}`, { 
+                        method: 'POST', 
+                        body: newNote 
+                    });
+                }
             },
             selectVariation(v) { this.modalItem = { name: v.name, img: v.img }; }
         }
