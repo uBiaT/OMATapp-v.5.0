@@ -8,7 +8,7 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
-    <title>Shopee WMS Pro</title>
+    <title>Shopee WMS Pro v5.4</title>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
     <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'>
     <script src='https://unpkg.com/vue@3/dist/vue.global.js'></script>
@@ -36,14 +36,15 @@
         
         .info-box { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; }
         .product-name { font-weight: 700; color: #222; margin-bottom: 4px; line-height: 1.3; font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .variation-badge { font-size: 12px; color: #e65100; background: #fff3e0; border: 1px solid #ffe0b2; padding: 2px 6px; border-radius: 4px; width: fit-content; margin-bottom: 4px; font-weight: 500; }
+        .variation-badge { font-size: 12px; color: #e65100; background: #fff3e0; border: 1px solid #ffe0b2; padding: 2px 6px; border-radius: 4px; width: fit-content; margin-bottom: 2px; font-weight: 500; }
         .location-badge { font-size: 11px; color: #1565c0; background: #e3f2fd; padding: 2px 8px; border-radius: 4px; width: fit-content; font-weight: bold; border: 1px solid #bbdefb; margin-top: 2px; }
         
         .qty-box { text-align: right; padding-left: 8px; display: flex; flex-direction: column; align-items: flex-end; min-width: 40px; }
         .qty-text { font-size: 25px; font-weight: 700; color: #333; }
         .qty-text.red { color: #d32f2f; }
         
-        .order-header { padding: 12px; background: white; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; }
+        /* Order Header Styles */
+        .order-header { padding: 12px; background: white; border-bottom: 1px solid #f0f0f0; cursor: pointer; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; }
         .order-header.active { background: #e3f2fd; border: 1px solid #90caf9; border-left: 5px solid #0d6efd; margin-bottom: 0; border-radius: 4px 4px 0 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .highlight-sn { color: #d32f2f; font-weight: 900; background: #ffebee; padding: 0 2px; border-radius: 2px; }
         .order-detail-box { background: #f8f9fa; border: 1px solid #90caf9; border-top: none; border-radius: 0 0 4px 4px; padding: 10px; margin-bottom: 10px; border-left: 5px solid #0d6efd; }
@@ -55,7 +56,7 @@
         .console-box { background: #1e1e1e; color: #00ff00; font-family: monospace; padding: 10px; border-radius: 6px; height: 400px; overflow-y: auto; font-size: 12px; border: 1px solid #444; }
         .log-line { border-bottom: 1px solid #333; padding: 2px 0; white-space: pre-wrap; word-break: break-all; }
         
-        .note-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7em; margin-top: 4px; display:inline-block; font-weight:bold; }
+        .note-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.9em; margin-top: 4px; display:inline-block; font-weight:bold; }
         .note-badge.normal { background: #ffecb3; color: #856404; border: 1px solid #ffeeba; }
         .note-badge.green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .note-badge.red { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
@@ -63,6 +64,19 @@
         .btn-float-bottom { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 1050; padding: 12px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .big-checkbox { width: 24px; height: 24px; accent-color: #2e7d32; margin-top: 2px; }
         .comp-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
+
+        /* Styles cho ĐVVC & Tiền */
+        .carrier-badge { 
+            font-size: 11px; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            color: #fff; 
+            font-weight: bold; 
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .total-money-text { font-size: 13px; color: #2e7d32; font-weight: 700; margin-right: 8px; }
+        .item-price { color: #d32f2f; font-weight: 600; font-size: 12px; margin-bottom: 2px; }
     </style>
 </head>
 <body>
@@ -144,21 +158,36 @@
             <div v-for='order in filteredOrders' :key='order.OrderId'>
                 <div class='order-header' :class='{active: openOrderId === order.OrderId}' @click='toggleOrder(order.OrderId)'>
                     <div class='d-flex align-items-start w-100'>
+                        
                         <input type='checkbox' class='form-check-input me-3 big-checkbox flex-shrink-0' v-model='order.Selected' @click.stop>
+                        
                         <div class='flex-grow-1 min-w-0'>
-                            <div class='d-flex align-items-center'>
-                                <span style='font-family:monospace;font-size:1.1em'>
-                                    <span>{{order.OrderId.slice(0,-4)}}</span>
-                                    <span class='highlight-sn'>{{order.OrderId.slice(-4)}}</span>
+                            <div class='d-flex align-items-center flex-wrap'>
+                                <span style='font-family:monospace;font-size:1.1em; font-weight:bold'>
+                                    {{order.OrderId.slice(0,-4)}}<span class='highlight-sn'>{{order.OrderId.slice(-4)}}</span>
                                 </span>
                                 <i class='bi bi-pencil-square text-secondary ms-2' style='cursor:pointer' @click.stop='editNote(order)'></i>
                             </div>
-                            <div class='small text-muted'>{{ formatTime(order.CreatedAt) }}</div>
+                            
+                            <div class='mt-1'>
+                                <span class='carrier-badge' :style='{ backgroundColor: getCarrierColor(order.ShippingCarrier) }'>
+                                    {{ order.ShippingCarrier }}
+                                </span>
+                            </div>
+
                             <div v-if='order.Note' class='note-badge' :class='getNoteClass(order.Note)'>
                                 <i class='bi bi-sticky-fill me-1'></i>{{order.Note}}
                             </div>
                         </div>
-                        <span class='badge bg-secondary rounded-pill ms-2'>{{order.Items.length}}</span>
+
+                        <div class='text-end ms-2 flex-shrink-0'>
+                            <div class='small text-muted mb-1'>{{ formatTime(order.CreatedAt) }}</div>
+                            
+                            <div class='d-flex align-items-center justify-content-end'>
+                                <span v-if='order.TotalAmount > 0' class='total-money-text'>{{formatMoney(order.TotalAmount)}}</span>
+                                <span class='badge bg-secondary rounded-pill'>{{order.Items.length}}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -172,6 +201,7 @@
                             <div class='info-box'>
                                 <div class='product-name'>{{item.ProductName}}</div>
                                 <div class='variation-badge'>{{item.ModelName}}</div>
+                                <div class='item-price'>{{formatMoney(item.Price)}}</div>
                                 <div v-if='item.Shelf' class='location-badge'>
                                     <i class='bi bi-geo-alt-fill'> </i>
                                     <span> Kệ {{item.Shelf}}</span>
@@ -288,6 +318,22 @@
 <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'></script>
 <script>
     const { createApp } = Vue;
+    
+    // --- BẢNG MÀU CHO CÁC ĐƠN VỊ VẬN CHUYỂN ---
+    // Bạn có thể sửa mã màu (Hex code) ở đây
+    const CARRIER_COLORS = {
+        'SPX Express': '#ee4d2d',      // Màu cam Shopee
+        'J&T Express': '#ec1c24',      // Màu đỏ J&T
+        'Viettel Post': '#ee0033',     // Màu đỏ Viettel (Logo mới)
+        'Giao Hàng Nhanh': '#00467f',  // Màu xanh GHN
+        'Ninja Van': '#c61d23',        // Màu đỏ Ninja
+        'Best Express': '#ff0080',     // Màu hồng Best
+        'VNPost': '#fdb913',           // Màu vàng VNPost
+        'GrabExpress': '#00b14f',      // Màu xanh Grab
+        'NowShip': '#ee2c2c',          // Màu đỏ Now
+        'Hỏa Tốc': '#ff5722'           // Màu cam đậm
+    };
+
     createApp({
         data() {
             return {
@@ -316,11 +362,21 @@
             groupedBatch() {
                 const groups = {};
                 this.batchItems.forEach(i => {
-                    const key = i.Location || 'Khác';
+                    const key = i.Shelf || 'chưa xác định';
                     if(!groups[key]) groups[key] = [];
                     groups[key].push(i);
                 });
-                return Object.keys(groups).sort().reduce((obj, key) => { obj[key] = groups[key]; return obj; }, {});
+                
+                const sortedKeys = Object.keys(groups).sort();
+                const result = {};
+                sortedKeys.forEach(k => {
+                    result[k] = groups[k].sort((a, b) => {
+                        const na = a.ModelName || a.ProductName || '';
+                        const nb = b.ModelName || b.ProductName || '';
+                        return na.localeCompare(nb);
+                    });
+                });
+                return result;
             },
             totalQty() { return this.batchItems.reduce((s, i) => s + i.TotalQty, 0); },
             pickedQty() { return this.batchItems.reduce((s, i) => s + (i.Picked ? i.TotalQty : 0), 0); }
@@ -333,44 +389,74 @@
         },
         mounted() {
             this.fetchData();
-            setInterval(this.fetchData, 3000); // Tăng tốc độ cập nhật lên 3s để đồng bộ nhanh hơn
+            setInterval(this.fetchData, 5000);
             setInterval(this.fetchLogs, 3000);
             this.updateZoom();
             this.confirmModalInstance = new bootstrap.Modal(document.getElementById('confirmModal'));
         },
         methods: {
             formatTime(ts) { return new Date(ts * 1000).toLocaleString('vi-VN'); },
+            formatMoney(val) { return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val); },
+            
+            // --- HÀM MỚI LẤY MÀU ---
+            getCarrierColor(name) {
+                // Nếu tên có chứa từ khóa thì lấy màu tương ứng
+                if (!name) return '#6c757d'; // Màu xám mặc định
+                for (const [key, color] of Object.entries(CARRIER_COLORS)) {
+                    if (name.includes(key) || name === key) return color;
+                }
+                return '#6c757d'; // Không tìm thấy thì trả về màu xám
+            },
+
             updateZoom() { document.body.style.zoom = this.zoomLevel; },
             adjustZoom(delta) { this.zoomLevel = Math.max(0.6, Math.min(1.4, parseFloat(this.zoomLevel) + delta)); this.updateZoom(); },
 
-            pullStart(e) { if (this.$refs.scrollContainer.scrollTop === 0) this.pullStartY = e.touches[0].clientY; },
+            pullStart(e) {
+                if (this.$refs.scrollContainer.scrollTop === 0) {
+                    this.pullStartY = e.touches[0].clientY;
+                }
+            },
             pullMove(e) {
                 if (this.pullStartY > 0 && !this.isRefreshing) {
                     const y = e.touches[0].clientY;
                     const diff = y - this.pullStartY;
-                    if (diff > 0) this.pullHeight = diff > 80 ? 80 : diff;
+                    if (diff > 0) {
+                        this.pullHeight = diff > 80 ? 80 : diff;
+                    }
                 }
             },
             pullEnd(e) {
                 if (this.pullHeight > 60) {
-                    this.isRefreshing = true; this.pullHeight = 50;
-                    this.fetchData().then(() => { setTimeout(() => { this.isRefreshing = false; this.pullHeight = 0; }, 500); });
-                } else { this.pullHeight = 0; }
+                    this.isRefreshing = true;
+                    this.pullHeight = 50;
+                    this.fetchData().then(() => {
+                        setTimeout(() => {
+                            this.isRefreshing = false;
+                            this.pullHeight = 0;
+                        }, 500);
+                    });
+                } else {
+                    this.pullHeight = 0;
+                }
                 this.pullStartY = 0;
             },
 
             modalTouchStart(e) { this.modalTouchStartY = e.changedTouches[0].screenY; },
             modalTouchEnd(e) {
                 this.modalTouchEndY = e.changedTouches[0].screenY;
+                this.handleModalSwipe();
+            },
+            handleModalSwipe() {
                 const diff = this.modalTouchStartY - this.modalTouchEndY;
                 if (Math.abs(diff) < 50) return;
                 const currentIdx = this.variations.findIndex(v => v.name === this.modalItem.name);
                 if (currentIdx === -1) return;
-                let nextIdx = diff > 0 ? (currentIdx + 1) % this.variations.length : (currentIdx - 1 + this.variations.length) % this.variations.length;
-                this.selectVariation(this.variations[nextIdx]);
+                let nextIdx = -1;
+                if (diff > 0) nextIdx = (currentIdx + 1) % this.variations.length;
+                else nextIdx = (currentIdx - 1 + this.variations.length) % this.variations.length;
+                if (nextIdx !== -1) this.selectVariation(this.variations[nextIdx]);
             },
 
-            // --- HÀM FETCH DATA ĐÃ SỬA LỖI ĐỒNG BỘ ---
             async fetchData() {
                 try {
                     const res = await fetch('/api/data');
@@ -379,41 +465,37 @@
                     this.loginUrl = data.loginUrl;
                     
                     const oldMap = new Map(this.orders.map(o => [o.OrderId, o]));
-                    
-                    // Luôn cập nhật danh sách mới từ Server về
                     this.orders = data.orders.map(o => {
                         const old = oldMap.get(o.OrderId);
                         return { 
                             ...o, 
-                            // Giữ lại trạng thái Selected cục bộ
                             Selected: old ? old.Selected : false, 
-                            // Ưu tiên lấy Note từ Server. Nếu Server rỗng thì giữ Note cũ (tránh nháy)
-                            Note: o.Note || (old ? old.Note : '') 
+                            Note: o.Note || '' 
                         };
                     });
-                } catch(e) {}
+                } catch(e) { console.error(e); }
             },
-
             async fetchLogs() { if(this.currentView === 'logs') { const res = await fetch('/api/logs'); this.logs = await res.json(); } },
             async doLogin() { 
                 if(!this.callbackUrl) return;
-                try { await fetch('/api/login', { method: 'POST', body: JSON.stringify({url: this.callbackUrl}) }); alert('Đã gửi yêu cầu đăng nhập!'); this.callbackUrl = ''; } catch(e) { alert('Lỗi mạng'); }
+                try {
+                    await fetch('/api/login', { method: 'POST', body: JSON.stringify({url: this.callbackUrl}) });
+                    alert('Đã gửi yêu cầu đăng nhập!');
+                    this.callbackUrl = '';
+                } catch(e) { alert('Lỗi mạng'); }
             },
             
             toggleSelectAll(e) { const checked = e.target.checked; this.filteredOrders.forEach(o => o.Selected = checked); },
             toggleOrder(id) { this.openOrderId = (this.openOrderId === id) ? null : id; },
 
-            // --- HÀM SỬA NOTE ĐÃ CÓ GỬI VỀ SERVER ---
             editNote(order) {
                 const current = order.Note || '';
-                const input = prompt('Nhập ghi chú (Lưu vào Server):', current);
-                if (input !== null) {
-                    order.Note = input; // Cập nhật hiển thị ngay lập tức
-                    // Gửi API
+                const input = prompt('Nhập ghi chú:', current);
+                if (input !== null && input !== current) {
+                    order.Note = input;
                     fetch(`/api/note?id=${order.OrderId}`, { method: 'POST', body: input });
                 }
             },
-            
             batchAddNote() {
                 const input = prompt('Nhập ghi chú cho ' + this.selectedCount + ' đơn:');
                 if (input !== null) {
@@ -423,42 +505,60 @@
                     });
                 }
             },
-
             getNoteClass(note) {
                 if (!note) return '';
-                if (note.toLowerCase() === 'đã soạn') return 'green';
-                if (note.toLowerCase() === 'chưa soạn') return 'red';
+                const n = note.toLowerCase();
+                if (n === 'đã soạn') return 'green';
+                if (n === 'chưa soạn') return 'red';
                 return 'normal';
             },
             getPickingCardClass(item) {
                 return { 'done': item.Picked, 'highlight-error': this.showUnpickedHighlight && !item.Picked };
             },
+
             showConfirm(msg, action) { this.confirmMessage = msg; this.pendingConfirmAction = action; this.confirmModalInstance.show(); },
             executeConfirm() { if(this.pendingConfirmAction) this.pendingConfirmAction(); this.confirmModalInstance.hide(); },
-            
+
             confirmShip(id) { this.showConfirm('Bạn chắc chắn muốn chuẩn bị đơn này?', () => { this.shipOrder(id); }); },
+
             finishPicking() {
                 const unpicked = this.batchItems.filter(i => !i.Picked);
-                if (unpicked.length === 0) { this.applyNoteToOrders(this.batchItems, 'Đã soạn'); this.closePicking(); } 
-                else { this.showUnpickedHighlight = true; this.showConfirm('Còn ' + unpicked.length + ' loại chưa nhặt. Vẫn hoàn thành?', () => { const picked = this.batchItems.filter(i => i.Picked); this.applyNoteToOrders(picked, 'Đã soạn'); this.applyNoteToOrders(unpicked, 'Chưa soạn'); this.closePicking(); }); }
+                if (unpicked.length === 0) {
+                    this.applyNoteToOrders(this.batchItems, 'Đã soạn');
+                    this.closePicking();
+                } else {
+                    this.showUnpickedHighlight = true;
+                    this.showConfirm('Còn ' + unpicked.length + ' loại chưa nhặt. Vẫn hoàn thành và đánh dấu lỗi?', () => {
+                        const picked = this.batchItems.filter(i => i.Picked);
+                        this.applyNoteToOrders(picked, 'Đã soạn');
+                        this.applyNoteToOrders(unpicked, 'Chưa soạn');
+                        this.closePicking();
+                    });
+                }
             },
             applyNoteToOrders(items, note) {
                 items.forEach(item => {
                     item.OrderIds.forEach(shortId => {
                         const order = this.orders.find(o => o.OrderId.endsWith(shortId) && o.Selected);
                         if (order) {
+                            if (note === 'Đã soạn' && order.Note === 'Chưa soạn') return;
                             order.Note = note;
                             fetch(`/api/note?id=${order.OrderId}`, { method: 'POST', body: note });
                         }
                     });
                 });
             },
-            closePicking() { this.isBatchMode = false; this.orders.forEach(o => o.Selected = false); this.currentView = 'manager'; this.showUnpickedHighlight = false; },
-            
+            closePicking() {
+                this.isBatchMode = false;
+                this.orders.forEach(o => o.Selected = false);
+                this.currentView = 'manager';
+                this.showUnpickedHighlight = false;
+            },
+
             async shipOrder(id) { 
                 await fetch(`/api/ship?id=${id}`, {method: 'POST'}); 
                 const o = this.orders.find(x => x.OrderId === id); 
-                if(o) { o.Status = 1; o.Selected = false; } 
+                if(o) { o.Status = 1; o.Selected = false; }
                 this.openOrderId = null; 
             },
             startPicking() {
@@ -468,7 +568,16 @@
                 selected.forEach(order => {
                     order.Items.forEach(item => {
                         const key = item.ModelName; 
-                        if(!agg[key]) agg[key] = { ProductName: item.ProductName, ModelName: item.ModelName, ImageUrl: item.ImageUrl, Location: item.Shelf || 'Chưa định vị', TotalQty: 0, OrderIds: [], Picked: false, ItemId: item.ItemId };
+                        if(!agg[key]) agg[key] = { 
+                            ProductName: item.ProductName, 
+                            ModelName: item.ModelName, 
+                            ImageUrl: item.ImageUrl, 
+                            Shelf: item.Shelf,
+                            Level: item.Level,
+                            Box: item.Box,
+                            TotalQty: 0, OrderIds: [], Picked: false,
+                            ItemId: item.ItemId 
+                        };
                         agg[key].TotalQty += item.Quantity;
                         agg[key].OrderIds.push(order.OrderId.slice(-4));
                     });
@@ -476,13 +585,20 @@
                 this.batchItems = Object.values(agg);
                 this.currentView = 'picking';
             },
+
             async showProductModal(item) {
-                this.loadingModal = true; this.modalItem = { name: item.ModelName, img: item.ImageUrl }; this.variations = [];
+                this.loadingModal = true;
+                this.modalItem = { name: item.ModelName, img: item.ImageUrl }; 
+                this.variations = [];
                 new bootstrap.Modal(document.getElementById('productModal')).show();
                 try {
                     const res = await fetch('/api/product?id=' + item.ItemId);
                     const data = await res.json();
-                    if(data.success) { this.variations = data.variations; const current = this.variations.find(v => v.name === item.ModelName); if(current) this.modalItem = { ...current, name: current.name, img: current.img }; }
+                    if(data.success) {
+                        this.variations = data.variations;
+                        const current = this.variations.find(v => v.name === item.ModelName);
+                        if(current) this.modalItem = { ...current, name: current.name, img: current.img };
+                    }
                 } catch(e) {}
                 this.loadingModal = false;
             },

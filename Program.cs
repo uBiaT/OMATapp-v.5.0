@@ -17,7 +17,6 @@ namespace ShopeeServer
     {
         // --- 1. HỆ THỐNG LOG VÀO BỘ NHỚ ---
         private static List<string> _serverLogs = new List<string>();
-
         public static void Log(string msg)
         {
             try
@@ -169,7 +168,11 @@ namespace ShopeeServer
                                 {
                                     OrderId = o.GetProperty("order_sn").GetString()!,
                                     CreatedAt = o.GetProperty("create_time").GetInt64(),
-                                    Status = status // <--- Gán trạng thái 0 hoặc 1 tùy nguồn
+                                    Status = status,// <--- Gán trạng thái 0 hoặc 1 tùy nguồn
+                                    Note = o.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "",
+
+                                    TotalAmount = o.TryGetProperty("total_amount", out var t) ? t.GetDecimal() : 0,
+                                    ShippingCarrier = o.TryGetProperty("shipping_carrier", out var sc) ? sc.GetString() ?? "Khác" : "Khác"
                                 };
                                 foreach (var it in o.GetProperty("item_list").EnumerateArray())
                                 {
@@ -182,11 +185,11 @@ namespace ShopeeServer
                                         ModelName = name,
                                         ImageUrl = it.GetProperty("image_info").GetProperty("image_url").GetString()!,
                                         Quantity = it.GetProperty("model_quantity_purchased").GetInt32(),
-                                        Price = it.GetProperty("model_discounted_price").GetInt32(),
+                                        Price = it.TryGetProperty("model_discounted_price", out var p) ? p.GetDecimal() : 0,
                                         SKU = it.GetProperty("model_sku").GetString() ?? "",
                                         Shelf = itemLocation.ContainsKey("Shelf") ? itemLocation["Shelf"] : null,
                                         Level = itemLocation.ContainsKey("Level") ? itemLocation["Level"] : null,
-                                        Box = itemLocation.ContainsKey("Box") ? itemLocation["Box"] : null
+                                        Box = itemLocation.ContainsKey("Box") ? itemLocation["Box"] : null,
                                     });
                                 }
                                 // Kiểm tra lần cuối để tránh trùng lặp
@@ -238,7 +241,8 @@ namespace ShopeeServer
                         {
                             orders = _dbOrders,
                             hasToken = !string.IsNullOrEmpty(ShopeeApiHelper.AccessToken),
-                            loginUrl = ShopeeApiHelper.GetAuthUrl()
+                            loginUrl = ShopeeApiHelper.GetAuthUrl(),
+                            //carrierLogos = _config.CarrierLogos
                         };
                         string j; lock (_lock) { j = JsonSerializer.Serialize(data); }
                         byte[] b = Encoding.UTF8.GetBytes(j);

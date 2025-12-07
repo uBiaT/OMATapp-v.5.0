@@ -237,7 +237,7 @@ namespace ShopeeServer
         public static async Task<string> GetOrderDetails(string sns)
         {
             return await CallGetAPI("/api/v2/order/get_order_detail", new Dictionary<string, string> {
-                { "order_sn_list", sns }, { "request_order_status_pending", "true" }, { "response_optional_fields", "item_list" }
+                { "order_sn_list", sns }, { "request_order_status_pending", "true" }, { "response_optional_fields", "item_list,total_amount,shipping_carrier" }
             });
         }
 
