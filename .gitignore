@@ -1,0 +1,9 @@
+# Bỏ qua thư mục tạm của Visual Studio (quan trọng nhất với bạn lúc này)
+.vs/
+
+# Bỏ qua thư mục build (kết quả chạy code, không cần lưu source)
+bin/
+obj/
+
+# Các file cấu hình riêng của máy bạn (không nên share cho người khác)
+appsettings.json
