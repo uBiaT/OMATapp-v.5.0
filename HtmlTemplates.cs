@@ -8,7 +8,7 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
-    <title>Shopee WMS Pro v5.4</title>
+    <title>Shopee WMS Pro v5.5</title>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
     <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'>
     <script src='https://unpkg.com/vue@3/dist/vue.global.js'></script>
@@ -16,7 +16,16 @@
         html, body { height: 100%; overflow: hidden; background-color: #f4f6f8; font-size: 14px; font-family: -apple-system, sans-serif; user-select: none; }
         #app { height: 100%; display: flex; flex-direction: column; }
         
-        .scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 80px; -webkit-overflow-scrolling: touch; position: relative; }
+        .scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 80px; -webkit-overflow-scrolling: touch; position: relative; z-index: 1; }
+        
+        /* HEADER TRANSITION & DROPDOWN FIX */
+        .main-header {
+            transition: margin-top 0.3s ease-in-out; 
+            overflow: visible !important; /* Để dropdown không bị cắt */
+            z-index: 1000; 
+            position: relative;
+            flex-shrink: 0;
+        }
         
         /* Pull Refresh */
         .pull-refresh-loader { height: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #e9ecef; color: #6c757d; font-weight: bold; transition: height 0.2s ease-out; }
@@ -65,24 +74,20 @@
         .big-checkbox { width: 24px; height: 24px; accent-color: #2e7d32; margin-top: 2px; }
         .comp-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
 
-        /* Styles cho ĐVVC & Tiền */
-        .carrier-badge { 
-            font-size: 11px; 
-            padding: 2px 6px; 
-            border-radius: 4px; 
-            color: #fff; 
-            font-weight: bold; 
-            display: inline-block;
-            white-space: nowrap;
-        }
+        .carrier-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; color: #fff; font-weight: bold; display: inline-block; white-space: nowrap; }
         .total-money-text { font-size: 13px; color: #2e7d32; font-weight: 700; margin-right: 8px; }
         .item-price { color: #d32f2f; font-weight: 600; font-size: 12px; margin-bottom: 2px; }
+
+        /* Custom Scrollbar for dropdown */
+        .dropdown-menu-scroll { max-height: 300px; overflow-y: auto; }
     </style>
 </head>
 <body>
 <div id='app'>
     
-    <div class='bg-white p-3 shadow-sm z-3'>
+    <div class='bg-white p-3 shadow-sm main-header' ref='mainHeader'
+         :style='{ marginTop: isHeaderHidden ? (`-${headerHeight}px`) : ""0px"" }'>
+         
         <div class='d-flex justify-content-between align-items-center mb-2'>
             <span class='fw-bold text-primary h5 mb-0'>SHOPEE WMS PRO</span>
             
@@ -104,28 +109,57 @@
                 <li class='nav-item'><a class='nav-link py-1' :class='{active: tab===""processed""}' @click='tab=""processed""'>Đã xử lý ({{processedOrders.length}})</a></li>
             </ul>
 
-            <div class='d-flex align-items-center justify-content-between'>
-                <div class='form-check ms-1'>
-                    <input class='form-check-input big-checkbox' type='checkbox' id='checkAll' :checked='isAllSelected' @change='toggleSelectAll'>
-                    <label class='form-check-label fw-bold ms-1 pt-1' for='checkAll'>Tất cả</label>
+            <div class='d-flex align-items-center justify-content-between pt-1'>
+                <div class='d-flex align-items-center'>
+                    <div class='form-check ms-1'>
+                        <input class='form-check-input big-checkbox' type='checkbox' id='checkAll' :checked='isAllSelected' @change='toggleSelectAll'>
+                        <label class='form-check-label fw-bold ms-1 pt-1' for='checkAll'>Tất cả</label>
+                    </div>
+
+                    <div class='dropdown ms-2'>
+                        <button class='btn btn-sm btn-light border shadow-sm dropdown-toggle' type='button' data-bs-toggle='dropdown' data-bs-auto-close='outside'>
+                            <i class='bi bi-funnel-fill' :class='{""text-primary"": filterCarriers.length > 0}'></i>
+                            <span v-if='filterCarriers.length > 0' class='badge bg-primary ms-1'>{{filterCarriers.length}}</span>
+                        </button>
+                        <ul class='dropdown-menu shadow p-2 dropdown-menu-scroll' style='min-width: 260px;'>
+                            <li><h6 class='dropdown-header text-uppercase small fw-bold text-muted mb-2'>Lọc theo ĐVVC</h6></li>
+                            <li v-for='carrier in availableCarriers' :key='carrier.name' class='mb-2'>
+                                <div class='form-check d-flex align-items-center ps-0' style='cursor:pointer' @click='toggleCarrier(carrier.name)'>
+                                    <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='carrier.name' v-model='filterCarriers' @click.stop>
+                                    <div class='flex-grow-1 d-flex justify-content-between align-items-center'>
+                                        <span class='carrier-badge' :style='{ backgroundColor: carrier.color }'>{{carrier.name}}</span>
+                                        <span class='badge bg-secondary rounded-pill ms-2'>{{carrier.count}}</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li v-if='availableCarriers.length === 0' class='text-center text-muted small py-2'>Không có dữ liệu</li>
+                            <li><hr class='dropdown-divider'></li>
+                            <li class='d-flex gap-2'>
+                                <button v-if='filterCarriers.length > 0' class='btn btn-sm btn-outline-danger w-50' @click='filterCarriers=[]'>Xóa lọc</button>
+                                <button class='btn btn-sm btn-primary flex-grow-1' @click='closeDropdown'>Xong</button>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
-                <button class='btn btn-sm btn-light border shadow-sm' @click='sortDesc = !sortDesc'>
-                    <i class='bi' :class='sortDesc ? ""bi-sort-down"" : ""bi-sort-up""'></i> 
-                    {{ sortDesc ? 'Mới nhất' : 'Cũ nhất' }}
-                </button>
-                
-                <div style='min-width: 90px; text-align: right;'>
-                    <div v-if='selectedCount > 0' class='dropdown'>
-                        <button class='btn btn-sm btn-success fw-bold shadow-sm dropdown-toggle' type='button' data-bs-toggle='dropdown'>
-                            Áp dụng ({{selectedCount}})
-                        </button>
-                        <ul class='dropdown-menu dropdown-menu-end shadow'>
-                            <li><button class='dropdown-item py-2 fw-bold' v-if='tab===""unprocessed""' @click='startPicking'><i class='bi bi-box-seam me-2'></i>Gom đơn</button></li>
-                            <li><button class='dropdown-item py-2 fw-bold' v-if='tab===""processed""' @click='printOrders'><i class='bi bi-box-seam me-2'></i>In đơn</button></li>
-                            <li><hr class='dropdown-divider'></li>
-                            <li><button class='dropdown-item py-2' @click='batchAddNote'><i class='bi bi-pencil-square me-2'></i>Ghi chú</button></li>
-                        </ul>
+                <div class='d-flex align-items-center'>
+                     <button class='btn btn-sm btn-light border shadow-sm me-2' @click='sortDesc = !sortDesc'>
+                        <i class='bi' :class='sortDesc ? ""bi-sort-down"" : ""bi-sort-up""'></i> 
+                        {{ sortDesc ? 'Mới' : 'Cũ' }}
+                    </button>
+                    
+                    <div style='min-width: 90px; text-align: right;'>
+                        <div v-if='selectedCount > 0' class='dropdown'>
+                            <button class='btn btn-sm btn-success fw-bold shadow-sm dropdown-toggle' type='button' data-bs-toggle='dropdown'>
+                                Áp dụng ({{selectedCount}})
+                            </button>
+                            <ul class='dropdown-menu dropdown-menu-end shadow'>
+                                <li><button class='dropdown-item py-2 fw-bold' v-if='tab===""unprocessed""' @click='startPicking'><i class='bi bi-box-seam me-2'></i>Gom đơn</button></li>
+                                <li><button class='dropdown-item py-2 fw-bold' v-if='tab===""processed""' @click='printOrders'><i class='bi bi-box-seam me-2'></i>In đơn</button></li>
+                                <li><hr class='dropdown-divider'></li>
+                                <li><button class='dropdown-item py-2' @click='batchAddNote'><i class='bi bi-pencil-square me-2'></i>Ghi chú</button></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -215,6 +249,12 @@
                         <i class='bi bi-printer-fill'></i> CHUẨN BỊ ĐƠN
                     </button>
                 </div>
+            </div>
+            
+            <div v-if='filteredOrders.length === 0 && orders.length > 0' class='text-center py-5 text-muted'>
+                <i class='bi bi-funnel fs-1'></i>
+                <p class='mt-2'>Không tìm thấy đơn hàng nào phù hợp bộ lọc.</p>
+                <button class='btn btn-sm btn-outline-primary' @click='filterCarriers=[]'>Xóa bộ lọc</button>
             </div>
         </div>
 
@@ -318,19 +358,17 @@
 <script>
     const { createApp } = Vue;
     
-    // --- BẢNG MÀU CHO CÁC ĐƠN VỊ VẬN CHUYỂN ---
-    // Bạn có thể sửa mã màu (Hex code) ở đây
     const CARRIER_COLORS = {
-        'SPX Express': '#ee4d2d',      // Màu cam Shopee
-        'J&T Express': '#ec1c24',      // Màu đỏ J&T
-        'Viettel Post': '#ee0033',     // Màu đỏ Viettel (Logo mới)
-        'Giao Hàng Nhanh': '#00467f',  // Màu xanh GHN
-        'Ninja Van': '#c61d23',        // Màu đỏ Ninja
-        'Best Express': '#ff0080',     // Màu hồng Best
-        'VNPost': '#fdb913',           // Màu vàng VNPost
-        'GrabExpress': '#00b14f',      // Màu xanh Grab
-        'NowShip': '#ee2c2c',          // Màu đỏ Now
-        'Hỏa Tốc': '#ff5722'           // Màu cam đậm
+        'SPX Express': '#ee4d2d',
+        'J&T Express': '#ec1c24',
+        'Viettel Post': '#ee0033',
+        'Giao Hàng Nhanh': '#00467f',
+        'Ninja Van': '#c61d23',
+        'Best Express': '#ff0080',
+        'VNPost': '#fdb913',
+        'GrabExpress': '#00b14f',
+        'NowShip': '#ee2c2c',
+        'Hỏa Tốc': '#ff5722'
     };
 
     createApp({
@@ -343,14 +381,43 @@
                 zoomLevel: 1.0,
                 confirmMessage: '', pendingConfirmAction: null, confirmModalInstance: null,
                 pullStartY: 0, pullHeight: 0, isRefreshing: false,
-                modalTouchStartY: 0, modalTouchEndY: 0
+                modalTouchStartY: 0, modalTouchEndY: 0,
+                
+                lastScrollTop: 0,
+                isHeaderHidden: false,
+                headerHeight: 0,
+                
+                filterCarriers: [] // Danh sách ĐVVC đang lọc
             }
         },
         computed: {
             unprocessedOrders() { return this.orders.filter(o => o.Status === 0); },
             processedOrders() { return this.orders.filter(o => o.Status === 1); },
+            
+            // Tính toán danh sách ĐVVC dựa trên Tab hiện tại (Chưa lọc)
+            availableCarriers() {
+                const list = this.tab === 'unprocessed' ? this.unprocessedOrders : this.processedOrders;
+                const groups = {};
+                list.forEach(o => {
+                    const c = o.ShippingCarrier || 'Khác';
+                    if (!groups[c]) groups[c] = 0;
+                    groups[c]++;
+                });
+                return Object.keys(groups).map(name => ({
+                    name: name,
+                    count: groups[name],
+                    color: this.getCarrierColor(name)
+                })).sort((a,b) => b.count - a.count); // Xếp theo số lượng nhiều nhất
+            },
+
             filteredOrders() { 
                 let list = this.tab === 'unprocessed' ? this.unprocessedOrders : this.processedOrders;
+                
+                // Áp dụng bộ lọc ĐVVC
+                if (this.filterCarriers.length > 0) {
+                    list = list.filter(o => this.filterCarriers.includes(o.ShippingCarrier || 'Khác'));
+                }
+
                 return [...list].sort((a, b) => this.sortDesc ? b.CreatedAt - a.CreatedAt : a.CreatedAt - b.CreatedAt);
             },
             selectedCount() { return this.orders.filter(o => o.Selected).length; },
@@ -384,6 +451,11 @@
             tab() {
                 this.orders.forEach(o => o.Selected = false);
                 this.openOrderId = null;
+                this.filterCarriers = []; // Reset bộ lọc khi chuyển tab
+                this.updateHeaderHeight();
+            },
+            currentView() {
+                this.updateHeaderHeight();
             }
         },
         mounted() {
@@ -392,19 +464,50 @@
             setInterval(this.fetchLogs, 3000);
             this.updateZoom();
             this.confirmModalInstance = new bootstrap.Modal(document.getElementById('confirmModal'));
+            
+            this.$refs.scrollContainer.addEventListener('scroll', this.handleScroll);
+            
+            window.addEventListener('resize', this.updateHeaderHeight);
+            setTimeout(this.updateHeaderHeight, 500);
         },
         methods: {
+            updateHeaderHeight() {
+                this.$nextTick(() => {
+                    if (this.$refs.mainHeader) {
+                        this.headerHeight = this.$refs.mainHeader.offsetHeight;
+                    }
+                });
+            },
+            
+            handleScroll(e) {
+                const st = this.$refs.scrollContainer.scrollTop;
+                if (st > this.lastScrollTop && st > 50) {
+                    this.isHeaderHidden = true;
+                } else if (st < this.lastScrollTop) {
+                    this.isHeaderHidden = false;
+                }
+                this.lastScrollTop = st <= 0 ? 0 : st;
+            },
+            
+            toggleCarrier(name) {
+                const idx = this.filterCarriers.indexOf(name);
+                if (idx > -1) this.filterCarriers.splice(idx, 1);
+                else this.filterCarriers.push(name);
+            },
+            
+            closeDropdown() {
+                // Giả lập click ra ngoài để đóng dropdown bootstrap
+                document.body.click(); 
+            },
+
             formatTime(ts) { return new Date(ts * 1000).toLocaleString('vi-VN'); },
             formatMoney(val) { return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val); },
-            
-            // --- HÀM MỚI LẤY MÀU ---
             getCarrierColor(name) {
-                // Nếu tên có chứa từ khóa thì lấy màu tương ứng
-                if (!name) return '#6c757d'; // Màu xám mặc định
+                if (!name) return '#6c757d';
                 for (const [key, color] of Object.entries(CARRIER_COLORS)) {
                     if (name.includes(key) || name === key) return color;
                 }
-                return '#6c757d'; // Không tìm thấy thì trả về màu xám
+                return '#6c757d';
             },
 
             updateZoom() { document.body.style.zoom = this.zoomLevel; },
@@ -462,7 +565,6 @@
                     const data = await res.json();
                     this.hasToken = data.hasToken;
                     this.loginUrl = data.loginUrl;
-                    
                     const oldMap = new Map(this.orders.map(o => [o.OrderId, o]));
                     this.orders = data.orders.map(o => {
                         const old = oldMap.get(o.OrderId);
@@ -483,10 +585,8 @@
                     this.callbackUrl = '';
                 } catch(e) { alert('Lỗi mạng'); }
             },
-            
             toggleSelectAll(e) { const checked = e.target.checked; this.filteredOrders.forEach(o => o.Selected = checked); },
             toggleOrder(id) { this.openOrderId = (this.openOrderId === id) ? null : id; },
-
             editNote(order) {
                 const current = order.Note || '';
                 const input = prompt('Nhập ghi chú:', current);
@@ -514,12 +614,9 @@
             getPickingCardClass(item) {
                 return { 'done': item.Picked, 'highlight-error': this.showUnpickedHighlight && !item.Picked };
             },
-
             showConfirm(msg, action) { this.confirmMessage = msg; this.pendingConfirmAction = action; this.confirmModalInstance.show(); },
             executeConfirm() { if(this.pendingConfirmAction) this.pendingConfirmAction(); this.confirmModalInstance.hide(); },
-
             confirmShip(id) { this.showConfirm('Bạn chắc chắn muốn chuẩn bị đơn này?', () => { this.shipOrder(id); }); },
-
             finishPicking() {
                 const unpicked = this.batchItems.filter(i => !i.Picked);
                 if (unpicked.length === 0) {
@@ -553,7 +650,6 @@
                 this.currentView = 'manager';
                 this.showUnpickedHighlight = false;
             },
-
             async shipOrder(id) { 
                 await fetch(`/api/ship?id=${id}`, {method: 'POST'}); 
                 const o = this.orders.find(x => x.OrderId === id); 
@@ -584,7 +680,6 @@
                 this.batchItems = Object.values(agg);
                 this.currentView = 'picking';
             },
-
             async showProductModal(item) {
                 this.loadingModal = true;
                 this.modalItem = { name: item.ModelName, img: item.ImageUrl }; 
