@@ -12,6 +12,8 @@ namespace ShopeeServer
         public decimal TotalAmount { get; set; } = 0; // Tổng tiền đơn
         public decimal TotalItems { get; set; } = 0; // Tổng số món
         public string ShippingCarrier { get; set; } = ""; // Đơn vị vận chuyển (Ví dụ: SPX Express, J&T...)
+        public string TrackingNumber { get; set; } = "";
+        public bool Printed { get; set; } = false; // True khi API trả về status = READY
 
         // UI Helper (Không lưu DB)
         public bool Selected { get; set; } = false;

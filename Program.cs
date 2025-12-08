@@ -125,6 +125,8 @@ namespace ShopeeServer
 
             if (newReady.Count > 0) await FetchAndAddOrders(newReady, 0);       // Thêm vào thẻ "Chưa xử lý"
             if (newProcessed.Count > 0) await FetchAndAddOrders(newProcessed, 1); // Thêm vào thẻ "Đã xử lý"
+
+            await UpdatePrintingStatus();
         }
 
         // Helper: Lấy danh sách ID theo trạng thái
@@ -197,6 +199,60 @@ namespace ShopeeServer
                             }
                         }
                     }
+                }
+            }
+        }
+
+        static async Task UpdatePrintingStatus()
+        {
+            List<string> snsToCheck;
+            lock (_lock)
+            {
+                // Chỉ kiểm tra những đơn đã có Mã vận đơn
+                // Bạn có thể bỏ điều kiện !o.Printed nếu muốn check lại cả những đơn đã in
+                snsToCheck = _dbOrders
+                    .Select(o => o.OrderId)
+                    .ToList();
+            }
+
+            if (snsToCheck.Count == 0) return;
+
+            // Chia nhỏ mỗi lần check 50 đơn để tránh lỗi API quá tải
+            for (int i = 0; i < snsToCheck.Count; i += 50)
+            {
+                var batch = snsToCheck.Skip(i).Take(50).ToList();
+                try
+                {
+                    string jsonRes = await ShopeeApiHelper.GetBatchDocResult(batch);
+                    using (JsonDocument doc = JsonDocument.Parse(jsonRes))
+                    {
+                        if (doc.RootElement.TryGetProperty("response", out var resp) &&
+                            resp.TryGetProperty("result_list", out var list))
+                        {
+                            lock (_lock)
+                            {
+                                foreach (var item in list.EnumerateArray())
+                                {
+                                    string sn = item.GetProperty("order_sn").GetString();
+                                    string status = item.TryGetProperty("status", out var s) ? s.GetString() : "FAILED";
+
+                                    // Status có thể là: PROCESSING, READY, FAILED
+                                    if (status == "READY")
+                                    {
+                                        var order = _dbOrders.FirstOrDefault(o => o.OrderId == sn);
+                                        if (order != null)
+                                        {
+                                            order.Printed = true; // Đánh dấu là Đã in (File đã sẵn sàng)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"[CheckPrintStatus] Lỗi batch {i}: {ex.Message}");
                 }
             }
         }

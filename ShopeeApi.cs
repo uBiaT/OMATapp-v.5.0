@@ -258,6 +258,21 @@ namespace ShopeeServer
         public static async Task<string> ShipOrder(object payload) =>
             await CallPostAPI("/api/v2/logistics/ship_order", payload);
 
+        public static async Task<string> GetBatchDocResult(List<string> orderSns)
+        {
+            if (orderSns == null || orderSns.Count == 0) return "{}";
+
+            // Tạo danh sách object theo cấu trúc API yêu cầu
+            var orderListPayload = orderSns.Select(sn => new { order_sn = sn }).ToArray();
+
+            var payload = new
+            {
+                order_list = orderListPayload,
+            };
+
+            return await CallPostAPI("/api/v2/logistics/get_shipping_document_result", payload);
+        }
+
         // B3: Tạo yêu cầu in (In Nhiệt)
         public static async Task<string> CreateDoc(string sn) =>
             await CallPostAPI("/api/v2/logistics/create_shipping_document", new { order_list = new[] { new { order_sn = sn } }, shipping_document_type = "THERMAL_AIR_WAYBILL" });
