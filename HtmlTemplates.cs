@@ -8,7 +8,7 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
-    <title>Shopee WMS Pro v5.5</title>
+    <title>Shopee WMS Pro v5.6</title>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
     <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'>
     <script src='https://unpkg.com/vue@3/dist/vue.global.js'></script>
@@ -18,16 +18,14 @@
         
         .scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 80px; -webkit-overflow-scrolling: touch; position: relative; z-index: 1; }
         
-        /* HEADER TRANSITION & DROPDOWN FIX */
         .main-header {
             transition: margin-top 0.3s ease-in-out; 
-            overflow: visible !important; /* Để dropdown không bị cắt */
+            overflow: visible !important; 
             z-index: 1000; 
             position: relative;
             flex-shrink: 0;
         }
         
-        /* Pull Refresh */
         .pull-refresh-loader { height: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #e9ecef; color: #6c757d; font-weight: bold; transition: height 0.2s ease-out; }
         .pull-refresh-loader.refreshing { height: 50px !important; transition: height 0.2s; }
         .pull-icon { transition: transform 0.3s; font-size: 1.5rem; margin-right: 8px; }
@@ -35,7 +33,6 @@
         .spin-icon { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* Card Styles */
         .card-item { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 10px; border: 1px solid #eee; overflow: hidden; }
         .card-body-custom { padding: 12px; display: flex; align-items: flex-start; position: relative; }
         
@@ -52,7 +49,6 @@
         .qty-text { font-size: 25px; font-weight: 700; color: #333; }
         .qty-text.red { color: #d32f2f; }
         
-        /* Order Header Styles */
         .order-header { padding: 12px; background: white; border-bottom: 1px solid #f0f0f0; cursor: pointer; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; }
         .order-header.active { background: #e3f2fd; border: 2px solid #90caf9; border-left: 5px solid #0d6efd; margin-bottom: 0; border-radius: 4px 4px 0 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .highlight-sn { color: #000000; font-weight: 900; background: #f7f7f7; padding: 0 2px; border-radius: 2px; }
@@ -78,8 +74,8 @@
         .total-money-text { font-size: 13px; color: #2e7d32; font-weight: 700; margin-right: 8px; }
         .item-price { color: #d32f2f; font-weight: 600; font-size: 12px; margin-bottom: 2px; }
 
-        /* Custom Scrollbar for dropdown */
-        .dropdown-menu-scroll { max-height: 300px; overflow-y: auto; }
+        .dropdown-menu-scroll { max-height: 350px; overflow-y: auto; }
+        .filter-section-title { font-size: 0.75rem; font-weight: 800; color: #6c757d; text-transform: uppercase; margin: 8px 12px 4px; }
     </style>
 </head>
 <body>
@@ -118,11 +114,27 @@
 
                     <div class='dropdown ms-2'>
                         <button class='btn btn-sm btn-light border shadow-sm dropdown-toggle' type='button' data-bs-toggle='dropdown' data-bs-auto-close='outside'>
-                            <i class='bi bi-funnel-fill' :class='{""text-primary"": filterCarriers.length > 0}'></i>
-                            <span v-if='filterCarriers.length > 0' class='badge bg-primary ms-1'>{{filterCarriers.length}}</span>
+                            <i class='bi bi-funnel-fill' :class='{""text-primary"": activeFilterCount > 0}'></i>
+                            <span v-if='activeFilterCount > 0' class='badge bg-primary ms-1'>{{activeFilterCount}}</span>
                         </button>
                         <ul class='dropdown-menu shadow p-2 dropdown-menu-scroll' style='min-width: 260px;'>
-                            <li><h6 class='dropdown-header text-uppercase small fw-bold text-muted mb-2'>Lọc theo ĐVVC</h6></li>
+                            
+                            <div class='filter-section-title'>Trạng thái in</div>
+                            <li v-for='opt in printStatusOptions' :key='opt.value' class='mb-2'>
+                                <div class='form-check d-flex align-items-center ps-0' style='cursor:pointer' @click='togglePrintStatus(opt.value)'>
+                                    <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterPrintStatus' @click.stop>
+                                    <div class='flex-grow-1 d-flex justify-content-between align-items-center'>
+                                        <span class='fw-bold' :class='opt.value === ""yes"" ? ""text-success"" : ""text-secondary""'>
+                                            <i class='bi' :class='opt.value === ""yes"" ? ""bi-printer-fill"" : ""bi-printer""'></i> {{opt.label}}
+                                        </span>
+                                        <span class='badge bg-secondary rounded-pill ms-2'>{{opt.count}}</span>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li><hr class='dropdown-divider my-1'></li>
+
+                            <div class='filter-section-title'>Đơn vị vận chuyển</div>
                             <li v-for='carrier in availableCarriers' :key='carrier.name' class='mb-2'>
                                 <div class='form-check d-flex align-items-center ps-0' style='cursor:pointer' @click='toggleCarrier(carrier.name)'>
                                     <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='carrier.name' v-model='filterCarriers' @click.stop>
@@ -132,10 +144,11 @@
                                     </div>
                                 </div>
                             </li>
+                            
                             <li v-if='availableCarriers.length === 0' class='text-center text-muted small py-2'>Không có dữ liệu</li>
                             <li><hr class='dropdown-divider'></li>
                             <li class='d-flex gap-2'>
-                                <button v-if='filterCarriers.length > 0' class='btn btn-sm btn-outline-danger w-50' @click='filterCarriers=[]'>Xóa lọc</button>
+                                <button v-if='activeFilterCount > 0' class='btn btn-sm btn-outline-danger w-50' @click='clearFilters'>Xóa lọc</button>
                                 <button class='btn btn-sm btn-primary flex-grow-1' @click='closeDropdown'>Xong</button>
                             </li>
                         </ul>
@@ -215,7 +228,8 @@
                                 <span v-if='order.TotalAmount > 0' class='total-money-text'>{{formatMoney(order.TotalAmount)}}</span>
                                 <span class='badge bg-secondary rounded-pill'>{{order.Items.length}} loại</span>
                             </div>
-                            <div class='mt-1'>
+                            <div class='mt-1 d-flex align-items-center justify-content-end'>
+                                <i v-if='order.Printed' class='bi bi-printer-fill text-success me-1' title='Đã in'></i>
                                 <span class='carrier-badge' :style='{ backgroundColor: getCarrierColor(order.ShippingCarrier) }'>
                                     {{ order.ShippingCarrier }}
                                 </span>
@@ -254,7 +268,7 @@
             <div v-if='filteredOrders.length === 0 && orders.length > 0' class='text-center py-5 text-muted'>
                 <i class='bi bi-funnel fs-1'></i>
                 <p class='mt-2'>Không tìm thấy đơn hàng nào phù hợp bộ lọc.</p>
-                <button class='btn btn-sm btn-outline-primary' @click='filterCarriers=[]'>Xóa bộ lọc</button>
+                <button class='btn btn-sm btn-outline-primary' @click='clearFilters'>Xóa bộ lọc</button>
             </div>
         </div>
 
@@ -387,18 +401,22 @@
                 isHeaderHidden: false,
                 headerHeight: 0,
                 
-                filterCarriers: [] // Danh sách ĐVVC đang lọc
+                filterCarriers: [], 
+                filterPrintStatus: [] // 'yes' | 'no'
             }
         },
         computed: {
             unprocessedOrders() { return this.orders.filter(o => o.Status === 0); },
             processedOrders() { return this.orders.filter(o => o.Status === 1); },
             
-            // Tính toán danh sách ĐVVC dựa trên Tab hiện tại (Chưa lọc)
+            // List hiện tại dựa theo tab
+            currentTabList() {
+                return this.tab === 'unprocessed' ? this.unprocessedOrders : this.processedOrders;
+            },
+
             availableCarriers() {
-                const list = this.tab === 'unprocessed' ? this.unprocessedOrders : this.processedOrders;
                 const groups = {};
-                list.forEach(o => {
+                this.currentTabList.forEach(o => {
                     const c = o.ShippingCarrier || 'Khác';
                     if (!groups[c]) groups[c] = 0;
                     groups[c]++;
@@ -407,15 +425,39 @@
                     name: name,
                     count: groups[name],
                     color: this.getCarrierColor(name)
-                })).sort((a,b) => b.count - a.count); // Xếp theo số lượng nhiều nhất
+                })).sort((a,b) => b.count - a.count);
+            },
+
+            printStatusOptions() {
+                const list = this.currentTabList;
+                const printedCount = list.filter(o => o.Printed).length;
+                const notPrintedCount = list.length - printedCount;
+                return [
+                    { label: 'Đã in', value: 'yes', count: printedCount },
+                    { label: 'Chưa in', value: 'no', count: notPrintedCount }
+                ];
+            },
+
+            activeFilterCount() {
+                return this.filterCarriers.length + this.filterPrintStatus.length;
             },
 
             filteredOrders() { 
-                let list = this.tab === 'unprocessed' ? this.unprocessedOrders : this.processedOrders;
+                let list = this.currentTabList;
                 
-                // Áp dụng bộ lọc ĐVVC
+                // 1. Filter by Carrier
                 if (this.filterCarriers.length > 0) {
                     list = list.filter(o => this.filterCarriers.includes(o.ShippingCarrier || 'Khác'));
+                }
+
+                // 2. Filter by Print Status
+                if (this.filterPrintStatus.length > 0) {
+                    list = list.filter(o => {
+                        const isPrinted = o.Printed === true;
+                        const matchYes = this.filterPrintStatus.includes('yes') && isPrinted;
+                        const matchNo = this.filterPrintStatus.includes('no') && !isPrinted;
+                        return matchYes || matchNo;
+                    });
                 }
 
                 return [...list].sort((a, b) => this.sortDesc ? b.CreatedAt - a.CreatedAt : a.CreatedAt - b.CreatedAt);
@@ -451,7 +493,7 @@
             tab() {
                 this.orders.forEach(o => o.Selected = false);
                 this.openOrderId = null;
-                this.filterCarriers = []; // Reset bộ lọc khi chuyển tab
+                this.clearFilters();
                 this.updateHeaderHeight();
             },
             currentView() {
@@ -466,7 +508,6 @@
             this.confirmModalInstance = new bootstrap.Modal(document.getElementById('confirmModal'));
             
             this.$refs.scrollContainer.addEventListener('scroll', this.handleScroll);
-            
             window.addEventListener('resize', this.updateHeaderHeight);
             setTimeout(this.updateHeaderHeight, 500);
         },
@@ -478,7 +519,6 @@
                     }
                 });
             },
-            
             handleScroll(e) {
                 const st = this.$refs.scrollContainer.scrollTop;
                 if (st > this.lastScrollTop && st > 50) {
@@ -494,11 +534,16 @@
                 if (idx > -1) this.filterCarriers.splice(idx, 1);
                 else this.filterCarriers.push(name);
             },
-            
-            closeDropdown() {
-                // Giả lập click ra ngoài để đóng dropdown bootstrap
-                document.body.click(); 
+            togglePrintStatus(val) {
+                const idx = this.filterPrintStatus.indexOf(val);
+                if (idx > -1) this.filterPrintStatus.splice(idx, 1);
+                else this.filterPrintStatus.push(val);
             },
+            clearFilters() {
+                this.filterCarriers = [];
+                this.filterPrintStatus = [];
+            },
+            closeDropdown() { document.body.click(); },
 
             formatTime(ts) { return new Date(ts * 1000).toLocaleString('vi-VN'); },
             formatMoney(val) { return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val); },
@@ -513,18 +558,12 @@
             updateZoom() { document.body.style.zoom = this.zoomLevel; },
             adjustZoom(delta) { this.zoomLevel = Math.max(0.6, Math.min(1.4, parseFloat(this.zoomLevel) + delta)); this.updateZoom(); },
 
-            pullStart(e) {
-                if (this.$refs.scrollContainer.scrollTop === 0) {
-                    this.pullStartY = e.touches[0].clientY;
-                }
-            },
+            pullStart(e) { if (this.$refs.scrollContainer.scrollTop === 0) this.pullStartY = e.touches[0].clientY; },
             pullMove(e) {
                 if (this.pullStartY > 0 && !this.isRefreshing) {
                     const y = e.touches[0].clientY;
                     const diff = y - this.pullStartY;
-                    if (diff > 0) {
-                        this.pullHeight = diff > 80 ? 80 : diff;
-                    }
+                    if (diff > 0) this.pullHeight = diff > 80 ? 80 : diff;
                 }
             },
             pullEnd(e) {
@@ -532,22 +571,14 @@
                     this.isRefreshing = true;
                     this.pullHeight = 50;
                     this.fetchData().then(() => {
-                        setTimeout(() => {
-                            this.isRefreshing = false;
-                            this.pullHeight = 0;
-                        }, 500);
+                        setTimeout(() => { this.isRefreshing = false; this.pullHeight = 0; }, 500);
                     });
-                } else {
-                    this.pullHeight = 0;
-                }
+                } else { this.pullHeight = 0; }
                 this.pullStartY = 0;
             },
 
             modalTouchStart(e) { this.modalTouchStartY = e.changedTouches[0].screenY; },
-            modalTouchEnd(e) {
-                this.modalTouchEndY = e.changedTouches[0].screenY;
-                this.handleModalSwipe();
-            },
+            modalTouchEnd(e) { this.modalTouchEndY = e.changedTouches[0].screenY; this.handleModalSwipe(); },
             handleModalSwipe() {
                 const diff = this.modalTouchStartY - this.modalTouchEndY;
                 if (Math.abs(diff) < 50) return;
@@ -571,20 +602,13 @@
                         return { 
                             ...o, 
                             Selected: old ? old.Selected : false, 
-                            Note: o.Note || '' 
+                            Note: o.Note || '',
+                            Printed: o.Printed || false // Default to false if missing
                         };
                     });
                 } catch(e) { console.error(e); }
             },
             async fetchLogs() { if(this.currentView === 'logs') { const res = await fetch('/api/logs'); this.logs = await res.json(); } },
-            async doLogin() { 
-                if(!this.callbackUrl) return;
-                try {
-                    await fetch('/api/login', { method: 'POST', body: JSON.stringify({url: this.callbackUrl}) });
-                    alert('Đã gửi yêu cầu đăng nhập!');
-                    this.callbackUrl = '';
-                } catch(e) { alert('Lỗi mạng'); }
-            },
             toggleSelectAll(e) { const checked = e.target.checked; this.filteredOrders.forEach(o => o.Selected = checked); },
             toggleOrder(id) { this.openOrderId = (this.openOrderId === id) ? null : id; },
             editNote(order) {
@@ -653,8 +677,19 @@
             async shipOrder(id) { 
                 await fetch(`/api/ship?id=${id}`, {method: 'POST'}); 
                 const o = this.orders.find(x => x.OrderId === id); 
-                if(o) { o.Status = 1; o.Selected = false; }
+                if(o) { 
+                    o.Status = 1; 
+                    o.Selected = false;
+                    o.Printed = true; // Mark as printed locally
+                }
                 this.openOrderId = null; 
+            },
+            printOrders() {
+                 // Logic in đơn ở đây
+                 const selected = this.orders.filter(o => o.Selected);
+                 // Giả lập đánh dấu đã in
+                 selected.forEach(o => o.Printed = true);
+                 alert('Đang gửi lệnh in cho ' + selected.length + ' đơn...');
             },
             startPicking() {
                 const selected = this.orders.filter(o => o.Selected);
