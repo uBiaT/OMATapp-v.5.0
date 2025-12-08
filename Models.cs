@@ -10,6 +10,7 @@ namespace ShopeeServer
         public long CreatedAt { get; set; } // Thời gian đặt hàng
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
         public decimal TotalAmount { get; set; } = 0; // Tổng tiền đơn
+        public decimal TotalItems { get; set; } = 0; // Tổng số món
         public string ShippingCarrier { get; set; } = ""; // Đơn vị vận chuyển (Ví dụ: SPX Express, J&T...)
 
         // UI Helper (Không lưu DB)
@@ -20,11 +21,10 @@ namespace ShopeeServer
     public class OrderItem
     {
         public long ItemId { get; set; }
-        public string ModelName { get; set; } = ""; // Tên phân loại
         public string ProductName { get; set; } = ""; // Tên sản phẩm
+        public string ModelName { get; set; } = ""; // Tên phân loại
         public string ImageUrl { get; set; } = "";
         public int Quantity { get; set; }
-        public string SKU { get; set; } = "";
         public string? Shelf { get; set; }
         public string? Level { get; set; }
         public string? Box { get; set; }

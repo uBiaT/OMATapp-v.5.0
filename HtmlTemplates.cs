@@ -45,9 +45,9 @@
         
         /* Order Header Styles */
         .order-header { padding: 12px; background: white; border-bottom: 1px solid #f0f0f0; cursor: pointer; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; }
-        .order-header.active { background: #e3f2fd; border: 1px solid #90caf9; border-left: 5px solid #0d6efd; margin-bottom: 0; border-radius: 4px 4px 0 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .highlight-sn { color: #d32f2f; font-weight: 900; background: #ffebee; padding: 0 2px; border-radius: 2px; }
-        .order-detail-box { background: #f8f9fa; border: 1px solid #90caf9; border-top: none; border-radius: 0 0 4px 4px; padding: 10px; margin-bottom: 10px; border-left: 5px solid #0d6efd; }
+        .order-header.active { background: #e3f2fd; border: 2px solid #90caf9; border-left: 5px solid #0d6efd; margin-bottom: 0; border-radius: 4px 4px 0 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .highlight-sn { color: #000000; font-weight: 900; background: #f7f7f7; padding: 0 2px; border-radius: 2px; }
+        .order-detail-box { background: #f8f9fa; border: 2px solid #90caf9; border-top: none; border-radius: 0 0 4px 4px; padding: 10px; margin-bottom: 10px; border-left: 5px solid #0d6efd; }
         
         .picking-group-header { background: #ff9800; color: white; padding: 8px 12px; font-weight: bold; border-radius: 6px; margin-top: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .picking-card.done { opacity: 0.4; filter: grayscale(100%); }
@@ -61,7 +61,7 @@
         .note-badge.green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .note-badge.red { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
         
-        .btn-float-bottom { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; z-index: 1050; padding: 12px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .btn-float-bottom { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 50%; max-width: 400px; z-index: 1050; padding: 12px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .big-checkbox { width: 24px; height: 24px; accent-color: #2e7d32; margin-top: 2px; }
         .comp-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
 
@@ -163,16 +163,10 @@
                         
                         <div class='flex-grow-1 min-w-0'>
                             <div class='d-flex align-items-center flex-wrap'>
-                                <span style='font-family:monospace;font-size:1.1em; font-weight:bold'>
+                                <span style='font-family:monospace;font-size:1.1em'>
                                     {{order.OrderId.slice(0,-4)}}<span class='highlight-sn'>{{order.OrderId.slice(-4)}}</span>
                                 </span>
                                 <i class='bi bi-pencil-square text-secondary ms-2' style='cursor:pointer' @click.stop='editNote(order)'></i>
-                            </div>
-                            
-                            <div class='mt-1'>
-                                <span class='carrier-badge' :style='{ backgroundColor: getCarrierColor(order.ShippingCarrier) }'>
-                                    {{ order.ShippingCarrier }}
-                                </span>
                             </div>
 
                             <div v-if='order.Note' class='note-badge' :class='getNoteClass(order.Note)'>
@@ -185,7 +179,12 @@
                             
                             <div class='d-flex align-items-center justify-content-end'>
                                 <span v-if='order.TotalAmount > 0' class='total-money-text'>{{formatMoney(order.TotalAmount)}}</span>
-                                <span class='badge bg-secondary rounded-pill'>{{order.Items.length}}</span>
+                                <span class='badge bg-secondary rounded-pill'>{{order.Items.length}} loại</span>
+                            </div>
+                            <div class='mt-1'>
+                                <span class='carrier-badge' :style='{ backgroundColor: getCarrierColor(order.ShippingCarrier) }'>
+                                    {{ order.ShippingCarrier }}
+                                </span>
                             </div>
                         </div>
                     </div>

@@ -186,7 +186,6 @@ namespace ShopeeServer
                                         ImageUrl = it.GetProperty("image_info").GetProperty("image_url").GetString()!,
                                         Quantity = it.GetProperty("model_quantity_purchased").GetInt32(),
                                         Price = it.TryGetProperty("model_discounted_price", out var p) ? p.GetDecimal() : 0,
-                                        SKU = it.GetProperty("model_sku").GetString() ?? "",
                                         Shelf = itemLocation.ContainsKey("Shelf") ? itemLocation["Shelf"] : null,
                                         Level = itemLocation.ContainsKey("Level") ? itemLocation["Level"] : null,
                                         Box = itemLocation.ContainsKey("Box") ? itemLocation["Box"] : null,
