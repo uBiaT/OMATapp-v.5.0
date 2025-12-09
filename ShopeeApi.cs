@@ -268,6 +268,7 @@ namespace ShopeeServer
             var payload = new
             {
                 order_list = orderListPayload,
+                shipping_document_type = "THERMAL_AIR_WAYBILL"
             };
 
             return await CallPostAPI("/api/v2/logistics/get_shipping_document_result", payload);

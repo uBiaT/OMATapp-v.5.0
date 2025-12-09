@@ -51,7 +51,7 @@
         
         .order-header { padding: 12px; background: white; border-bottom: 1px solid #f0f0f0; cursor: pointer; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; }
         .order-header.active { background: #e3f2fd; border: 2px solid #90caf9; border-left: 5px solid #0d6efd; margin-bottom: 0; border-radius: 4px 4px 0 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .highlight-sn { color: #000000; font-weight: 900; background: #f7f7f7; padding: 0 2px; border-radius: 2px; }
+        .highlight-sn { color: #0000ff; font-weight: 900; background: #ffffff; padding: 0 2px; border-radius: 2px; }
         .order-detail-box { background: #f8f9fa; border: 2px solid #90caf9; border-top: none; border-radius: 0 0 4px 4px; padding: 10px; margin-bottom: 10px; border-left: 5px solid #0d6efd; }
         
         .picking-group-header { background: #ff9800; color: white; padding: 8px 12px; font-weight: bold; border-radius: 6px; margin-top: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; }
@@ -66,7 +66,7 @@
         .note-badge.green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .note-badge.red { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
         
-        .btn-float-bottom { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 50%; max-width: 400px; z-index: 1050; padding: 12px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .btn-float-bottom { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 30%; max-width: 400px; z-index: 1050; padding: 12px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .big-checkbox { width: 24px; height: 24px; accent-color: #2e7d32; margin-top: 2px; }
         .comp-item { display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
 
@@ -113,8 +113,8 @@
                     </div>
 
                     <div class='dropdown ms-2'>
-                        <button class='btn btn-sm btn-light border shadow-sm dropdown-toggle' type='button' data-bs-toggle='dropdown' data-bs-auto-close='outside'>
-                            <i class='bi bi-funnel-fill' :class='{""text-primary"": activeFilterCount > 0}'></i>
+                        <button class='btn btn-sm btn-light border shadow-sm dropdown-toggle' style='margin: 5px' type='button' data-bs-toggle='dropdown' data-bs-auto-close='outside'>
+                            <span class='bi bi-funnel-fill' :class='{""text-primary"": activeFilterCount > 0}'>Lọc</span>
                             <span v-if='activeFilterCount > 0' class='badge bg-primary ms-1'>{{activeFilterCount}}</span>
                         </button>
                         <ul class='dropdown-menu shadow p-2 dropdown-menu-scroll' style='min-width: 260px;'>
@@ -153,14 +153,13 @@
                             </li>
                         </ul>
                     </div>
+                    <button class='btn btn-sm btn-light border shadow-sm me-2' style='margin: 5px' @click='sortDesc = !sortDesc'>
+                        <i class='bi' :class='sortDesc ? ""bi-sort-down"" : ""bi-sort-up""'></i> 
+                        {{ sortDesc ? 'Sắp xếp: Mới trước' : 'Sắp xếp: Cũ trước' }}
+                    </button>
                 </div>
 
                 <div class='d-flex align-items-center'>
-                     <button class='btn btn-sm btn-light border shadow-sm me-2' @click='sortDesc = !sortDesc'>
-                        <i class='bi' :class='sortDesc ? ""bi-sort-down"" : ""bi-sort-up""'></i> 
-                        {{ sortDesc ? 'Mới' : 'Cũ' }}
-                    </button>
-                    
                     <div style='min-width: 90px; text-align: right;'>
                         <div v-if='selectedCount > 0' class='dropdown'>
                             <button class='btn btn-sm btn-success fw-bold shadow-sm dropdown-toggle' type='button' data-bs-toggle='dropdown'>
@@ -213,10 +212,10 @@
                                 <span style='font-family:monospace;font-size:1.1em'>
                                     {{order.OrderId.slice(0,-4)}}<span class='highlight-sn'>{{order.OrderId.slice(-4)}}</span>
                                 </span>
-                                <i class='bi bi-pencil-square text-secondary ms-2' style='cursor:pointer' @click.stop='editNote(order)'></i>
                             </div>
 
-                            <div v-if='order.Note' class='note-badge' :class='getNoteClass(order.Note)'>
+                            <i v-if='!order.Note'class='bi bi-pencil-square text-secondary me-1' style='cursor:pointer' @click.stop='editNote(order)'></i>
+                            <div v-else class='note-badge' :class='getNoteClass(order.Note)' @click.stop='editNote(order)'>
                                 <i class='bi bi-sticky-fill me-1'></i>{{order.Note}}
                             </div>
                         </div>
