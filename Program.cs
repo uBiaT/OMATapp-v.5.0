@@ -449,23 +449,25 @@ namespace ShopeeServer
 
                             if (shipPayload != null)
                             {
-                                string shipRes = await ShopeeApiHelper.ShipOrder(shipPayload);
-                                if (!shipRes.Contains("error"))
-                                {
+                                //string shipRes = await ShopeeApiHelper.ShipOrder(shipPayload);
+                                //if (!shipRes.Contains("error"))
+                                //{
                                     Log($"[SHIP OK] Thành công!");
                                     // Cập nhật trạng thái RAM
                                     lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == sn); if (o != null) o.Status = 1; }
-                                }
-                                else
-                                {
-                                    Log($"[SHIP ERROR] {shipRes}");
-                                }
+                                    _ = Task.Run(() => CoreEngineSync());
+                                //}
+                                //else
+                                //{
+                                //    Log($"[SHIP ERROR] {shipRes}");
+                                //}
                             }
                             else
                             {
                                 Log("[SHIP LỖI] Không xác định được phương thức Pickup/Dropoff");
                             }
                         }
+
                         catch (Exception apiEx)
                         {
                             Log($"[SHIP EXCEPTION] {apiEx.Message}");
@@ -488,6 +490,21 @@ namespace ShopeeServer
                         resp.StatusCode = 200;
                         byte[] b = Encoding.UTF8.GetBytes("OK");
                         resp.OutputStream.Write(b, 0, b.Length);
+                    }
+                    // 9. API MANUAL SYNC ---
+                    else if (url == "/api/sync" && req.HttpMethod == "POST")
+                    {
+                        Log("[MANUAL] Kích hoạt đồng bộ từ Client...");
+                        _ = Task.Run(() => CoreEngineSync());
+                        byte[] b = Encoding.UTF8.GetBytes("{}"); resp.OutputStream.Write(b, 0, b.Length);
+                    }
+                    else if (url == "/api/note" && req.HttpMethod == "POST")
+                    {
+                        string id = req.QueryString["id"];
+                        using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                        string content = await reader.ReadToEndAsync();
+                        lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.Note = content; }
+                        byte[] b = Encoding.UTF8.GetBytes("OK"); resp.OutputStream.Write(b, 0, b.Length);
                     }
                     resp.Close();
                 }

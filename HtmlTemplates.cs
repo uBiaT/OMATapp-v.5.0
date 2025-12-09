@@ -8,7 +8,7 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
-    <title>Shopee WMS Pro v5.6</title>
+    <title>Shopee WMS Pro v6.0</title>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
     <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'>
     <script src='https://unpkg.com/vue@3/dist/vue.global.js'></script>
@@ -16,14 +16,17 @@
         html, body { height: 100%; overflow: hidden; background-color: #f4f6f8; font-size: 14px; font-family: -apple-system, sans-serif; user-select: none; }
         #app { height: 100%; display: flex; flex-direction: column; }
         
-        .scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 80px; -webkit-overflow-scrolling: touch; position: relative; z-index: 1; }
+        .scroll-area { flex-grow: 1; overflow-y: auto; padding-bottom: 80px; -webkit-overflow-scrolling: touch; position: relative; z-index: 1; scroll-behavior: smooth; }
         
         .main-header {
-            transition: margin-top 0.3s ease-in-out; 
+            transition: margin-top 0.7s cubic-bezier(0.25, 0.8, 0.5, 1);
+            will-change: margin-top;
             overflow: visible !important; 
             z-index: 1000; 
             position: relative;
             flex-shrink: 0;
+            background: rgba(70, 150, 255, 0.98);
+            backdrop-filter: blur(10px);
         }
         
         .pull-refresh-loader { height: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #e9ecef; color: #6c757d; font-weight: bold; transition: height 0.2s ease-out; }
@@ -155,7 +158,7 @@
                     </div>
                     <button class='btn btn-sm btn-light border shadow-sm me-2' style='margin: 5px' @click='sortDesc = !sortDesc'>
                         <i class='bi' :class='sortDesc ? ""bi-sort-down"" : ""bi-sort-up""'></i> 
-                        {{ sortDesc ? 'Sắp xếp: Mới trước' : 'Sắp xếp: Cũ trước' }}
+                        {{ sortDesc ? 'Mới' : 'Cũ' }}
                     </button>
                 </div>
 
@@ -202,7 +205,7 @@
             </div>
 
             <div v-for='order in filteredOrders' :key='order.OrderId'>
-                <div class='order-header' :class='{active: openOrderId === order.OrderId}' @click='toggleOrder(order.OrderId)'>
+                <div class='order-header' :id='""card-"" + order.OrderId' :class='{active: openOrderId === order.OrderId}' @click='toggleOrder(order.OrderId)'>
                     <div class='d-flex align-items-start w-100'>
                         
                         <input type='checkbox' class='form-check-input me-3 big-checkbox flex-shrink-0' v-model='order.Selected' @click.stop>
@@ -401,14 +404,13 @@
                 headerHeight: 0,
                 
                 filterCarriers: [], 
-                filterPrintStatus: [] // 'yes' | 'no'
+                filterPrintStatus: []
             }
         },
         computed: {
             unprocessedOrders() { return this.orders.filter(o => o.Status === 0); },
             processedOrders() { return this.orders.filter(o => o.Status === 1); },
             
-            // List hiện tại dựa theo tab
             currentTabList() {
                 return this.tab === 'unprocessed' ? this.unprocessedOrders : this.processedOrders;
             },
@@ -443,13 +445,9 @@
 
             filteredOrders() { 
                 let list = this.currentTabList;
-                
-                // 1. Filter by Carrier
                 if (this.filterCarriers.length > 0) {
                     list = list.filter(o => this.filterCarriers.includes(o.ShippingCarrier || 'Khác'));
                 }
-
-                // 2. Filter by Print Status
                 if (this.filterPrintStatus.length > 0) {
                     list = list.filter(o => {
                         const isPrinted = o.Printed === true;
@@ -458,7 +456,6 @@
                         return matchYes || matchNo;
                     });
                 }
-
                 return [...list].sort((a, b) => this.sortDesc ? b.CreatedAt - a.CreatedAt : a.CreatedAt - b.CreatedAt);
             },
             selectedCount() { return this.orders.filter(o => o.Selected).length; },
@@ -473,7 +470,6 @@
                     if(!groups[key]) groups[key] = [];
                     groups[key].push(i);
                 });
-                
                 const sortedKeys = Object.keys(groups).sort();
                 const result = {};
                 sortedKeys.forEach(k => {
@@ -519,13 +515,29 @@
                 });
             },
             handleScroll(e) {
-                const st = this.$refs.scrollContainer.scrollTop;
-                if (st > this.lastScrollTop && st > 50) {
-                    this.isHeaderHidden = true;
-                } else if (st < this.lastScrollTop) {
+                const currentSt = this.$refs.scrollContainer.scrollTop;
+                if (currentSt < 0) return;
+                if (currentSt < 60) {
                     this.isHeaderHidden = false;
+                    this.lastScrollTop = currentSt;
+                    return;
                 }
-                this.lastScrollTop = st <= 0 ? 0 : st;
+                const diff = currentSt - this.lastScrollTop;
+                if (diff > 0) {
+                    if (diff > 50 && !this.isHeaderHidden) {
+                        this.isHeaderHidden = true;
+                        this.lastScrollTop = currentSt;
+                    } else if (this.isHeaderHidden) {
+                        this.lastScrollTop = currentSt;
+                    }
+                } else if (diff < 0) {
+                    if (diff < -50 && this.isHeaderHidden) {
+                        this.isHeaderHidden = false;
+                        this.lastScrollTop = currentSt;
+                    } else if (!this.isHeaderHidden) {
+                        this.lastScrollTop = currentSt;
+                    }
+                }
             },
             
             toggleCarrier(name) {
@@ -602,14 +614,36 @@
                             ...o, 
                             Selected: old ? old.Selected : false, 
                             Note: o.Note || '',
-                            Printed: o.Printed || false // Default to false if missing
+                            Printed: o.Printed || false
                         };
                     });
                 } catch(e) { console.error(e); }
             },
             async fetchLogs() { if(this.currentView === 'logs') { const res = await fetch('/api/logs'); this.logs = await res.json(); } },
             toggleSelectAll(e) { const checked = e.target.checked; this.filteredOrders.forEach(o => o.Selected = checked); },
-            toggleOrder(id) { this.openOrderId = (this.openOrderId === id) ? null : id; },
+            
+            // --- HÀM TOGGLE ORDER MỚI: CÓ AUTO FOCUS ---
+            toggleOrder(id) { 
+                if (this.openOrderId === id) {
+                    this.openOrderId = null;
+                } else {
+                    this.openOrderId = id;
+                    this.scrollToOrder(id); // Gọi hàm focus
+                }
+            },
+
+            // --- HÀM SCROLL CHUYÊN DỤNG ---
+            scrollToOrder(id) {
+                this.$nextTick(() => {
+                    const el = document.getElementById('card-' + id);
+                    if (el) {
+                        // block: 'center' để đưa thẻ vào giữa màn hình
+                        // behavior: 'smooth' để cuộn mượt
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            },
+
             editNote(order) {
                 const current = order.Note || '';
                 const input = prompt('Nhập ghi chú:', current);
@@ -674,19 +708,32 @@
                 this.showUnpickedHighlight = false;
             },
             async shipOrder(id) { 
+                let nextId = null;
+                const list = this.filteredOrders;
+                const idx = list.findIndex(x => x.OrderId === id);
+                if (idx !== -1 && idx < list.length - 1) {
+                    nextId = list[idx + 1].OrderId;
+                }
+
                 await fetch(`/api/ship?id=${id}`, {method: 'POST'}); 
+
                 const o = this.orders.find(x => x.OrderId === id); 
                 if(o) { 
                     o.Status = 1; 
                     o.Selected = false;
-                    o.Printed = true; // Mark as printed locally
                 }
-                this.openOrderId = null; 
+
+                if (nextId) {
+                    this.openOrderId = nextId;
+                    this.scrollToOrder(nextId); // --- TỰ ĐỘNG FOCUS ĐƠN TIẾP THEO ---
+                } else {
+                    this.openOrderId = null;
+                }
+
+                try { fetch('/api/sync', { method: 'POST' }); } catch {}
             },
             printOrders() {
-                 // Logic in đơn ở đây
                  const selected = this.orders.filter(o => o.Selected);
-                 // Giả lập đánh dấu đã in
                  selected.forEach(o => o.Printed = true);
                  alert('Đang gửi lệnh in cho ' + selected.length + ' đơn...');
             },
