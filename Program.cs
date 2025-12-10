@@ -286,7 +286,24 @@ namespace ShopeeServer
                     // 1. GIAO DIỆN CHÍNH
                     if (url == "/")
                     {
-                        byte[] b = Encoding.UTF8.GetBytes(HtmlTemplates.Index);
+                        //byte[] b = Encoding.UTF8.GetBytes(HtmlTemplates.Index);
+                        string htmlContent = "<h1>Lỗi: Không tìm thấy file index.html</h1>";
+                        string filePath = "index.html"; // File nằm cùng thư mục exe
+
+                        if (File.Exists(filePath))
+                        {
+                            htmlContent = File.ReadAllText(filePath);
+                        }
+                        else
+                        {
+                            // Fallback: Tìm thử ở thư mục gốc project (trường hợp đang debug trong VS)
+                            // Đường dẫn này tùy thuộc cấu trúc folder của bạn
+                            string debugPath = Path.Combine(Directory.GetCurrentDirectory(), "../../..", "index.html");
+                            if (File.Exists(debugPath)) htmlContent = File.ReadAllText(debugPath);
+                        }
+
+                        byte[] b = Encoding.UTF8.GetBytes(htmlContent);
+
                         resp.ContentType = "text/html; charset=utf-8"; resp.OutputStream.Write(b, 0, b.Length);
                     }
                     // 2. API DỮ LIỆU CHÍNH (Kèm trạng thái Login)
@@ -449,19 +466,19 @@ namespace ShopeeServer
 
                             if (shipPayload != null)
                             {
-                                //string shipRes = await ShopeeApiHelper.ShipOrder(shipPayload);
-                                //if (!shipRes.Contains("error"))
-                                //{
+                                string shipRes = await ShopeeApiHelper.ShipOrder(shipPayload);
+                                if (!shipRes.Contains("error"))
+                                {
                                     Log($"[SHIP OK] Thành công!");
                                     // Cập nhật trạng thái RAM
                                     lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == sn); if (o != null) o.Status = 1; }
                                     _ = Task.Run(() => CoreEngineSync());
-                                //}
-                                //else
-                                //{
-                                //    Log($"[SHIP ERROR] {shipRes}");
-                                //}
                             }
+                            else
+                            {
+                                Log($"[SHIP ERROR] {shipRes}");
+                            }
+                        }
                             else
                             {
                                 Log("[SHIP LỖI] Không xác định được phương thức Pickup/Dropoff");
