@@ -201,8 +201,8 @@ namespace ShopeeServer
                 var resp = await client.PostAsync(url, content);
                 Program.Log($"[API-POST] {path}");
                 Program.Log($"[API-POST] {url}");
-                //return await resp.Content.ReadAsStringAsync();
-                return "{\"error\":\"network_error\"}";
+                return await resp.Content.ReadAsStringAsync();
+                //return "{\"error\":\"network_error\"}";
             }
             catch { return "{\"error\":\"network_error\"}"; }
         }
@@ -277,7 +277,7 @@ namespace ShopeeServer
                 //shipping_document_type = "THERMAL_AIR_WAYBILL"
             };
 
-            return await CallPostAPI("/api/v2/logistics/create_shipping_document", payload);
+            return await CallPostAPI("/api/v2/logistics/get_shipping_document_result", payload);
         }
 
         // B3: Tạo yêu cầu in (In Nhiệt)
