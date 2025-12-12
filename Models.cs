@@ -7,7 +7,7 @@ namespace ShopeeServer
         public string OrderId { get; set; } = ""; // Mã đơn hàng (Order SN)
         public int Status { get; set; } = 0; // 0: Mới, 1: Đã in/Xử lý
         public string AssignedTo { get; set; } = ""; // Tên nhân viên
-        public long CreatedAt { get; set; } // Thời gian đặt hàng
+        public long UpdateAt { get; set; } // Thời gian đặt hàng
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
         public decimal TotalAmount { get; set; } = 0; // Tổng tiền đơn
         public decimal TotalItems { get; set; } = 0; // Tổng số món

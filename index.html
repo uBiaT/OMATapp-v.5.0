@@ -505,7 +505,7 @@
                             </div>
 
                             <div class='text-end ms-2 flex-shrink-0'>
-                                <div class='small text-muted mb-1'>{{ formatTime(order.CreatedAt) }}</div>
+                                <div class='small text-muted mb-1'>{{ formatTime(order.UpdateAt) }}</div>
 
                                 <div class='d-flex align-items-center justify-content-end'>
                                     <span v-if='order.TotalAmount > 0' class='total-money-text'>{{formatMoney(order.TotalAmount)}}</span>
@@ -737,7 +737,7 @@
                             return matchYes || matchNo;
                         });
                     }
-                    return [...list].sort((a, b) => this.sortDesc ? b.CreatedAt - a.CreatedAt : a.CreatedAt - b.CreatedAt);
+                    return [...list].sort((a, b) => this.sortDesc ? b.UpdateAt - a.UpdateAt : a.UpdateAt - b.UpdateAt);
                 },
                 selectedCount() { return this.orders.filter(o => o.Selected).length; },
                 isAllSelected() {
@@ -916,7 +916,7 @@
                     this.$nextTick(() => {
                         const el = document.getElementById('card-' + id);
                         if (el) {
-                            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
                     });
                 },

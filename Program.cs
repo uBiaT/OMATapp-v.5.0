@@ -25,6 +25,7 @@ namespace ShopeeServer
                 string logLine = $"[{time}] {msg}";
 
                 // In ra Console
+                Console.WriteLine();
                 Console.WriteLine(logLine);
 
                 // Lưu vào RAM để hiển thị lên Web
@@ -114,9 +115,8 @@ namespace ShopeeServer
             lock (_lock)
             {
                 // DỌN DẸP
-                int removed = _dbOrders.RemoveAll(o => o.Status == 0 && !readyIds.Contains(o.OrderId));
-                if (removed > 0) Log($"Đã làm sạch {removed} đơn cũ/hủy khỏi danh sách chờ.");
-                removed = _dbOrders.RemoveAll(o => o.Status == 1 && !processedIds.Contains(o.OrderId));
+                _dbOrders.RemoveAll(o => o.Status == 0 && !readyIds.Contains(o.OrderId));
+                _dbOrders.RemoveAll(o => o.Status == 1 && !processedIds.Contains(o.OrderId));
             }
 
             // C. THÊM MỚI: Tải chi tiết cho những đơn chưa có trong RAM
@@ -132,22 +132,70 @@ namespace ShopeeServer
         // Helper: Lấy danh sách ID theo trạng thái
         static async Task<List<string>> FetchIds(string status, long from, long to)
         {
-            string json = await ShopeeApiHelper.GetOrderList(from, to, status);
-            if (!json.Contains("\"response\""))
-            {
-                Log($"Lỗi lấy đơn {status}: {json}");
-                if (await ShopeeApiHelper.RefreshTokenNow())
-                    json = await ShopeeApiHelper.GetOrderList(from, to, status);
-                else return null;
-            }
+            List<string> allIds = new List<string>();
+            string cursor = ""; // Con trỏ trang, bắt đầu là rỗng
+            bool more = true;   // Cờ báo còn trang tiếp theo hay không
 
-            List<string> ids = new List<string>();
-            using (JsonDocument doc = JsonDocument.Parse(json))
+            do
             {
-                if (doc.RootElement.TryGetProperty("response", out var r) && r.TryGetProperty("order_list", out var l))
-                    foreach (var i in l.EnumerateArray()) ids.Add(i.GetProperty("order_sn").GetString()!);
-            }
-            return ids;
+                // 1. Gọi API với cursor hiện tại
+                string json = await ShopeeApiHelper.GetOrderList(from, to, status, cursor);
+
+                // 2. Xử lý lỗi Token hết hạn (giống code cũ của bạn)
+                if (!json.Contains("\"response\""))
+                {
+                    Log($"Lỗi lấy đơn {status}: {json}");
+                    if (await ShopeeApiHelper.RefreshTokenNow())
+                    {
+                        // Thử lại lần nữa nếu refresh thành công
+                        json = await ShopeeApiHelper.GetOrderList(from, to, status, cursor);
+                    }
+                    else
+                    {
+                        return null; // Token lỗi hẳn thì dừng
+                    }
+                }
+
+                // 3. Parse JSON để lấy ID và Cursor mới
+                using (JsonDocument doc = JsonDocument.Parse(json))
+                {
+                    if (doc.RootElement.TryGetProperty("response", out var r))
+                    {
+                        // Lấy danh sách ID trong trang này
+                        if (r.TryGetProperty("order_list", out var l) && l.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var i in l.EnumerateArray())
+                            {
+                                allIds.Add(i.GetProperty("order_sn").GetString()!);
+                            }
+                        }
+
+                        // Kiểm tra xem còn trang sau không
+                        more = r.TryGetProperty("more", out var m) && m.GetBoolean();
+
+                        // Lấy cursor cho trang tiếp theo
+                        if (more && r.TryGetProperty("next_cursor", out var nc))
+                        {
+                            cursor = nc.GetString() ?? "";
+                        }
+                    }
+                    else
+                    {
+                        // Nếu không có response hợp lệ thì dừng vòng lặp
+                        more = false;
+                    }
+                }
+
+                // Log nhẹ để biết tiến độ (nếu tải nhiều)
+                if (more)
+                {
+                    Log($"...Đang tải tiếp trang sau ({allIds.Count} đơn đã tìm thấy)...");
+                    await Task.Delay(100); // Nghỉ 1 xíu để không spam API
+                }
+
+            } while (more); // Lặp lại nếu Shopee báo còn dữ liệu (more = true)
+
+            return allIds;
         }
 
         // Helper: Tải chi tiết và thêm vào RAM
@@ -169,7 +217,7 @@ namespace ShopeeServer
                                 var ord = new Order
                                 {
                                     OrderId = o.GetProperty("order_sn").GetString()!,
-                                    CreatedAt = o.GetProperty("create_time").GetInt64(),
+                                    UpdateAt = o.GetProperty("update_time").GetInt64(),
                                     Status = status,// <--- Gán trạng thái 0 hoặc 1 tùy nguồn
                                     Note = o.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "",
 

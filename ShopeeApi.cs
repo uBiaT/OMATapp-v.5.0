@@ -158,6 +158,7 @@ namespace ShopeeServer
 
             // In ra Console (màu xám hoặc vàng) để dễ nhìn
             Program.Log($"[API-GET] {path}");
+            Program.Log(requestUrl);
 
             using var client = new HttpClient();
 
@@ -194,10 +195,14 @@ namespace ShopeeServer
 
             using var client = new HttpClient();
             var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+            string jsonBody = JsonSerializer.Serialize(body);
             try
             {
                 var resp = await client.PostAsync(url, content);
-                return await resp.Content.ReadAsStringAsync();
+                Program.Log($"[API-POST] {path}");
+                Program.Log($"[API-POST] {url}");
+                //return await resp.Content.ReadAsStringAsync();
+                return "{\"error\":\"network_error\"}";
             }
             catch { return "{\"error\":\"network_error\"}"; }
         }
@@ -221,15 +226,16 @@ namespace ShopeeServer
         // Trong file ShopeeApi.cs
 
         // Sửa hàm GetOrderList thành như sau:
-        public static async Task<string> GetOrderList(long fromDate, long toDate, string status = "READY_TO_SHIP")
+        public static async Task<string> GetOrderList(long fromDate, long toDate, string status = "READY_TO_SHIP", string cursor = "")
         {
             var p = new Dictionary<string, string> {
-        { "time_range_field", "create_time" },
+        { "time_range_field", "update_time" },
         { "time_from", fromDate.ToString() },
         { "time_to", toDate.ToString() },
         { "page_size", "100" },
         { "order_status", status }, // <--- Dùng tham số truyền vào
-        { "request_order_status_pending", "true" }
+        { "request_order_status_pending", "true" },
+        { "cursor", cursor }
     };
             return await CallGetAPI("/api/v2/order/get_order_list", p);
         }
@@ -268,10 +274,10 @@ namespace ShopeeServer
             var payload = new
             {
                 order_list = orderListPayload,
-                shipping_document_type = "THERMAL_AIR_WAYBILL"
+                //shipping_document_type = "THERMAL_AIR_WAYBILL"
             };
 
-            return await CallPostAPI("/api/v2/logistics/get_shipping_document_result", payload);
+            return await CallPostAPI("/api/v2/logistics/create_shipping_document", payload);
         }
 
         // B3: Tạo yêu cầu in (In Nhiệt)
