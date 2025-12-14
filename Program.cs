@@ -680,26 +680,28 @@ namespace ShopeeServer
                     {
                         try
                         {
-                            using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                            // Lưu ý: Bỏ req.ContentEncoding để tránh lỗi nếu header không có charset
+                            using var reader = new StreamReader(req.InputStream);
                             var body = await reader.ReadToEndAsync();
 
-                            // [DEBUG] In ra body nhận được để kiểm tra
-                            Log($"[API PRINT BODY]: {body}");
+                            Log($"[API PRINT BODY]: {body}"); // Log kiểm tra
 
-                            // 1. Cấu hình bỏ qua phân biệt hoa thường (FIX LỖI NULL)
+                            // 1. Cấu hình JSON (Quan trọng)
                             var options = new JsonSerializerOptions
                             {
-                                PropertyNameCaseInsensitive = true,
+                                PropertyNameCaseInsensitive = true, // Chấp nhận cả "ids" và "Ids"
                                 ReadCommentHandling = JsonCommentHandling.Skip,
                                 AllowTrailingCommas = true
                             };
 
-                            BatchUpdateReq reqData = JsonSerializer.Deserialize<BatchUpdateReq>(body);
+                            // 2. SỬA LỖI Ở ĐÂY: Phải truyền 'options' vào hàm Deserialize
+                            var reqData = JsonSerializer.Deserialize<BatchUpdateReq>(body, options);
+                            // -------------------------------------------------------------------
 
                             var processedIds = new List<string>();
                             var errorIds = new List<string>();
 
-                            // 2. Kiểm tra Null an toàn hơn
+                            // 3. Kiểm tra dữ liệu đầu vào
                             if (reqData != null && reqData.Ids != null && reqData.Ids.Count > 0)
                             {
                                 string tempPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp");
@@ -708,9 +710,8 @@ namespace ShopeeServer
                                 string printerTool = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SumatraPDF.exe");
                                 if (!File.Exists(printerTool))
                                 {
-                                    // Log lỗi nếu thiếu tool
                                     Log("[ERROR] Không tìm thấy SumatraPDF.exe");
-                                    var err = new { success = false, message = "Server: Thiếu file SumatraPDF.exe" };
+                                    var err = new { success = false, message = "Lỗi Server: Thiếu file SumatraPDF.exe" };
                                     byte[] eb = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(err));
                                     resp.ContentType = "application/json";
                                     resp.OutputStream.Write(eb, 0, eb.Length);
@@ -720,7 +721,7 @@ namespace ShopeeServer
 
                                 foreach (var sn in reqData.Ids)
                                 {
-                                    if (string.IsNullOrEmpty(sn)) continue; // Bỏ qua nếu sn rỗng
+                                    if (string.IsNullOrWhiteSpace(sn)) continue;
 
                                     Log($"[PRINT] Đang xử lý đơn: {sn}...");
 
@@ -731,7 +732,6 @@ namespace ShopeeServer
                                         string resStatus = await ShopeeApiHelper.GetDocResult(sn);
                                         string status = "FAILED";
 
-                                        // Parse JSON an toàn
                                         try
                                         {
                                             using (JsonDocument doc = JsonDocument.Parse(resStatus))
@@ -782,10 +782,7 @@ namespace ShopeeServer
                                     // --- IN ---
                                     try
                                     {
-                                        // Thay tên máy in của bạn vào đây nếu cần, hoặc để default
-                                        // string printerName = "Xprinter XP-350B"; 
-                                        // string args = $"-print-to \"{printerName}\" -silent \"{filePath}\"";
-
+                                        // Lệnh in im lặng
                                         string args = $"-print-to-default -silent \"{filePath}\"";
 
                                         var p = new System.Diagnostics.Process();
@@ -795,13 +792,14 @@ namespace ShopeeServer
                                         p.StartInfo.UseShellExecute = false;
                                         p.Start();
 
+                                        // Cập nhật trạng thái
                                         lock (_lock)
                                         {
                                             var o = _dbOrders.FirstOrDefault(x => x.OrderId == sn);
                                             if (o != null) o.Printed = true;
                                         }
                                         processedIds.Add(sn);
-                                        Log($"[PRINT OK] Đã in đơn {sn}");
+                                        Log($"[PRINT OK] Đã gửi lệnh in đơn {sn}");
                                     }
                                     catch (Exception ex)
                                     {
@@ -812,7 +810,7 @@ namespace ShopeeServer
                             }
                             else
                             {
-                                Log("[API ERROR] reqData hoặc reqData.Ids bị null!");
+                                Log("[API ERROR] Không đọc được danh sách ID (Null hoặc Rỗng).");
                             }
 
                             var result = new { success = true, processed = processedIds, errors = errorIds };
@@ -822,8 +820,11 @@ namespace ShopeeServer
                         }
                         catch (Exception ex)
                         {
-                            Log($"[CRITICAL ERROR] /api/print: {ex.Message} {ex.StackTrace}");
+                            Log($"[CRITICAL ERROR] /api/print: {ex.Message}");
+                            // Trả về lỗi 500 để client biết
                             resp.StatusCode = 500;
+                            byte[] err = Encoding.UTF8.GetBytes($"{{\"success\":false, \"message\":\"{ex.Message}\"}}");
+                            resp.OutputStream.Write(err, 0, err.Length);
                         }
                     }
                     resp.Close();
