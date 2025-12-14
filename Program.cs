@@ -31,6 +31,7 @@ namespace ShopeeServer
                 // Lưu vào RAM để hiển thị lên Web
                 lock (_lock)
                 {
+                    _serverLogs.Insert(0, "");
                     _serverLogs.Insert(0, logLine); // Thêm vào đầu
                     if (_serverLogs.Count > 200) _serverLogs.RemoveAt(_serverLogs.Count - 1); // Giới hạn 200 dòng
                 }
@@ -364,13 +365,7 @@ namespace ShopeeServer
                         byte[] b = Encoding.UTF8.GetBytes(j);
                         resp.ContentType = "application/json"; resp.OutputStream.Write(b, 0, b.Length);
                     }
-                    // 3. API GÁN NHÂN VIÊN
-                    //else if (url == "/api/assign")
-                    //{
-                    //    string id = req.QueryString["id"], u = req.QueryString["user"];
-                    //    lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.AssignedTo = u; }
-                    //    resp.StatusCode = 200;
-                    //}
+
                     // 4. API LẤY CHI TIẾT SẢN PHẨM (Để xem ảnh to/tồn kho)
                     else if (url == "/api/product")
                     {
@@ -552,23 +547,15 @@ namespace ShopeeServer
                         byte[] b = Encoding.UTF8.GetBytes("OK");
                         resp.OutputStream.Write(b, 0, b.Length);
                     }
-                    // 9. API MANUAL SYNC ---
+                    // 9. API MANUAL SYNC
                     else if (url == "/api/sync" && req.HttpMethod == "POST")
                     {
                         Log("[MANUAL] Kích hoạt đồng bộ từ Client...");
                         _ = Task.Run(() => CoreEngineSync());
                         byte[] b = Encoding.UTF8.GetBytes("{}"); resp.OutputStream.Write(b, 0, b.Length);
                     }
-                    // . API NOTE ---
-                    else if (url == "/api/note" && req.HttpMethod == "POST")
-                    {
-                        string id = req.QueryString["id"];
-                        using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
-                        string content = await reader.ReadToEndAsync();
-                        lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.Note = content; }
-                        byte[] b = Encoding.UTF8.GetBytes("OK"); resp.OutputStream.Write(b, 0, b.Length);
-                    }
-                    // 10. API  ---
+
+                    // 10. API UPDATE PICKER & STATUS
                     else if (url == "/api/update-batch" && req.HttpMethod == "POST")
                     {
                         using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
@@ -591,6 +578,252 @@ namespace ShopeeServer
                             Log($"[UPDATE] Đã cập nhật {data.Field}='{data.Value}' cho {data.Ids.Count} đơn.");
                             byte[] b = Encoding.UTF8.GetBytes("OK");
                             resp.OutputStream.Write(b, 0, b.Length);
+                        }
+                    }
+                    // 11. API XỬ LÝ IN ĐƠN
+                    //else if (url == "/api/print" && req.HttpMethod == "POST")
+                    //{
+                    //    using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                    //    var body = await reader.ReadToEndAsync();
+                    //    var reqData = JsonSerializer.Deserialize<BatchUpdateReq>(body);
+
+                    //    var processedIds = new List<string>();
+                    //    var errorIds = new List<string>();
+
+                    //    if (reqData != null && reqData.Ids != null)
+                    //    {
+                    //        string tempPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp");
+                    //        if (!Directory.Exists(tempPath)) Directory.CreateDirectory(tempPath);
+
+                    //        // Kiểm tra công cụ in
+                    //        string printerTool = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SumatraPDF.exe");
+                    //        if (!File.Exists(printerTool))
+                    //        {
+                    //            var err = new { success = false, message = "Lỗi Server: Thiếu file SumatraPDF.exe" };
+                    //            byte[] eb = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(err));
+                    //            resp.ContentType = "application/json";
+                    //            resp.OutputStream.Write(eb, 0, eb.Length);
+                    //            resp.Close();
+                    //            continue;
+                    //        }
+
+                    //        foreach (var sn in reqData.Ids)
+                    //        {
+                    //            Log($"[PRINT] Đang xử lý đơn: {sn}...");
+
+                    //            // 1. Chờ Shopee tạo file (Polling)
+                    //            bool isReady = false;
+                    //            for (int i = 0; i < 15; i++)
+                    //            {
+                    //                string resStatus = await ShopeeApiHelper.GetDocResult(sn);
+                    //                string status = "FAILED";
+                    //                using (JsonDocument doc = JsonDocument.Parse(resStatus))
+                    //                {
+                    //                    if (doc.RootElement.TryGetProperty("response", out var r) &&
+                    //                       r.TryGetProperty("result_list", out var l) && l.GetArrayLength() > 0)
+                    //                    {
+                    //                        status = l[0].TryGetProperty("status", out var s) ? s.GetString() : "FAILED";
+                    //                    }
+                    //                }
+
+                    //                if (status == "READY") { isReady = true; break; }
+                    //                if (status != "PROCESSING") await ShopeeApiHelper.CreateDoc(sn); // Nếu chưa có thì tạo
+                    //                await Task.Delay(1500);
+                    //            }
+
+                    //            if (!isReady) { errorIds.Add(sn); continue; }
+
+                    //            // 2. Tải file về
+                    //            string filePath = Path.Combine(tempPath, $"{sn}.pdf");
+                    //            if (!File.Exists(filePath))
+                    //            {
+                    //                byte[] pdfBytes = await ShopeeApiHelper.DownloadDoc(sn);
+                    //                if (pdfBytes.Length > 0) await File.WriteAllBytesAsync(filePath, pdfBytes);
+                    //                else { errorIds.Add(sn); continue; }
+                    //            }
+
+                    //            // 3. GỌI LỆNH IN TRÊN SERVER (In ngầm)
+                    //            try
+                    //            {
+                    //                var p = new System.Diagnostics.Process();
+                    //                p.StartInfo.FileName = printerTool;
+                    //                // -print-to-default: In ra máy in mặc định
+                    //                // -silent: Không hiện cửa sổ
+                    //                p.StartInfo.Arguments = $"-print-to-default -silent \"{filePath}\"";
+                    //                p.StartInfo.CreateNoWindow = true;
+                    //                p.StartInfo.UseShellExecute = false;
+                    //                p.Start();
+
+                    //                // Cập nhật trạng thái
+                    //                lock (_lock)
+                    //                {
+                    //                    var o = _dbOrders.FirstOrDefault(x => x.OrderId == sn);
+                    //                    if (o != null) o.Printed = true;
+                    //                }
+                    //                processedIds.Add(sn);
+                    //                Log($"[PRINT OK] Đã in đơn {sn}");
+                    //            }
+                    //            catch (Exception ex)
+                    //            {
+                    //                Log($"[PRINT ERROR] {ex.Message}");
+                    //                errorIds.Add(sn);
+                    //            }
+                    //        }
+                    //    }
+
+                    //    var result = new { success = true, processed = processedIds, errors = errorIds };
+                    //    byte[] b = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(result));
+                    //    resp.ContentType = "application/json";
+                    //    resp.OutputStream.Write(b, 0, b.Length);
+                    //}
+                    else if (url == "/api/print" && req.HttpMethod == "POST")
+                    {
+                        try
+                        {
+                            using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                            var body = await reader.ReadToEndAsync();
+
+                            // [DEBUG] In ra body nhận được để kiểm tra
+                            Log($"[API PRINT BODY]: {body}");
+
+                            // 1. Cấu hình bỏ qua phân biệt hoa thường (FIX LỖI NULL)
+                            var options = new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true,
+                                ReadCommentHandling = JsonCommentHandling.Skip,
+                                AllowTrailingCommas = true
+                            };
+
+                            BatchUpdateReq reqData = JsonSerializer.Deserialize<BatchUpdateReq>(body);
+
+                            var processedIds = new List<string>();
+                            var errorIds = new List<string>();
+
+                            // 2. Kiểm tra Null an toàn hơn
+                            if (reqData != null && reqData.Ids != null && reqData.Ids.Count > 0)
+                            {
+                                string tempPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp");
+                                if (!Directory.Exists(tempPath)) Directory.CreateDirectory(tempPath);
+
+                                string printerTool = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SumatraPDF.exe");
+                                if (!File.Exists(printerTool))
+                                {
+                                    // Log lỗi nếu thiếu tool
+                                    Log("[ERROR] Không tìm thấy SumatraPDF.exe");
+                                    var err = new { success = false, message = "Server: Thiếu file SumatraPDF.exe" };
+                                    byte[] eb = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(err));
+                                    resp.ContentType = "application/json";
+                                    resp.OutputStream.Write(eb, 0, eb.Length);
+                                    resp.Close();
+                                    continue;
+                                }
+
+                                foreach (var sn in reqData.Ids)
+                                {
+                                    if (string.IsNullOrEmpty(sn)) continue; // Bỏ qua nếu sn rỗng
+
+                                    Log($"[PRINT] Đang xử lý đơn: {sn}...");
+
+                                    // --- VÒNG LẶP CHỜ SHOPEE TẠO FILE ---
+                                    bool isReady = false;
+                                    for (int i = 0; i < 15; i++)
+                                    {
+                                        string resStatus = await ShopeeApiHelper.GetDocResult(sn);
+                                        string status = "FAILED";
+
+                                        // Parse JSON an toàn
+                                        try
+                                        {
+                                            using (JsonDocument doc = JsonDocument.Parse(resStatus))
+                                            {
+                                                if (doc.RootElement.TryGetProperty("response", out var r) &&
+                                                   r.TryGetProperty("result_list", out var l) && l.GetArrayLength() > 0)
+                                                {
+                                                    status = l[0].TryGetProperty("status", out var s) ? s.GetString() : "FAILED";
+                                                }
+                                            }
+                                        }
+                                        catch { }
+
+                                        if (status == "READY") { isReady = true; break; }
+
+                                        // Nếu chưa có (NOT_EXIST) hoặc đang xử lý -> Gửi lệnh tạo
+                                        if (status != "PROCESSING" && status != "READY")
+                                        {
+                                            await ShopeeApiHelper.CreateDoc(sn);
+                                        }
+
+                                        await Task.Delay(1500);
+                                    }
+
+                                    if (!isReady)
+                                    {
+                                        Log($"[PRINT TIMEOUT] Đơn {sn} Shopee chưa trả về PDF.");
+                                        errorIds.Add(sn);
+                                        continue;
+                                    }
+
+                                    // --- TẢI FILE ---
+                                    string filePath = Path.Combine(tempPath, $"{sn}.pdf");
+                                    if (!File.Exists(filePath))
+                                    {
+                                        byte[] pdfBytes = await ShopeeApiHelper.DownloadDoc(sn);
+                                        if (pdfBytes != null && pdfBytes.Length > 0)
+                                        {
+                                            await File.WriteAllBytesAsync(filePath, pdfBytes);
+                                        }
+                                        else
+                                        {
+                                            errorIds.Add(sn);
+                                            continue;
+                                        }
+                                    }
+
+                                    // --- IN ---
+                                    try
+                                    {
+                                        // Thay tên máy in của bạn vào đây nếu cần, hoặc để default
+                                        // string printerName = "Xprinter XP-350B"; 
+                                        // string args = $"-print-to \"{printerName}\" -silent \"{filePath}\"";
+
+                                        string args = $"-print-to-default -silent \"{filePath}\"";
+
+                                        var p = new System.Diagnostics.Process();
+                                        p.StartInfo.FileName = printerTool;
+                                        p.StartInfo.Arguments = args;
+                                        p.StartInfo.CreateNoWindow = true;
+                                        p.StartInfo.UseShellExecute = false;
+                                        p.Start();
+
+                                        lock (_lock)
+                                        {
+                                            var o = _dbOrders.FirstOrDefault(x => x.OrderId == sn);
+                                            if (o != null) o.Printed = true;
+                                        }
+                                        processedIds.Add(sn);
+                                        Log($"[PRINT OK] Đã in đơn {sn}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log($"[PRINT ERROR] {ex.Message}");
+                                        errorIds.Add(sn);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Log("[API ERROR] reqData hoặc reqData.Ids bị null!");
+                            }
+
+                            var result = new { success = true, processed = processedIds, errors = errorIds };
+                            byte[] b = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(result));
+                            resp.ContentType = "application/json";
+                            resp.OutputStream.Write(b, 0, b.Length);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"[CRITICAL ERROR] /api/print: {ex.Message} {ex.StackTrace}");
+                            resp.StatusCode = 500;
                         }
                     }
                     resp.Close();

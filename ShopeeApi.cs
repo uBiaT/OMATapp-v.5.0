@@ -201,8 +201,8 @@ namespace ShopeeServer
                 var resp = await client.PostAsync(url, content);
                 Program.Log($"[API-POST] {path}");
                 Program.Log($"[API-POST] {url}");
+                //Program.Log($"[API-POST] {resp.Content.ReadAsStringAsync()}");
                 return await resp.Content.ReadAsStringAsync();
-                //return "{\"error\":\"network_error\"}";
             }
             catch { return "{\"error\":\"network_error\"}"; }
         }

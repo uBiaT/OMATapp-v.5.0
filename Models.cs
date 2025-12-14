@@ -42,7 +42,7 @@ namespace ShopeeServer
     }
     public class BatchUpdateReq
     {
-        public List<string>? Ids { get; set; }
+        public List<string>? Ids { get; set; } = new List<string>();
         public string? Field { get; set; } // "picker" hoặc "status"
         public string? Value { get; set; }
     }

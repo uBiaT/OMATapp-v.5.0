@@ -576,14 +576,11 @@
                                         <span v-if='item.Box'> - Thùng {{item.Box}}</span>
                                     </div>
                                 </div>
-                                <div class='qty-box'><span class='qty-text' :class='{red: item.Quantity > 1}'>x{{item.Quantity}}</span></div>
+                                <div class='qty-box'><span class='qty-text' :class='{red: item.Quantity > 1}'>×{{item.Quantity}}</span></div>
                             </div>
                         </div>
                         <button v-if='tab==="unprocessed"' class='btn btn-danger w-100 mt-2 fw-bold py-2' @click='confirmShip(order.OrderId)'>
                             <i class='bi bi-printer-fill'></i> CHUẨN BỊ ĐƠN
-                        </button>
-                        <button v-if='tab==="unprocessed"' class='btn btn-danger w-100 mt-2 fw-bold py-2'>
-                            <i class='bi bi-printer-fill'></i> IN ĐƠN
                         </button>
                     </div>
                 </div>
@@ -609,7 +606,7 @@
                             <div class='info-box'>
                                 <div class='product-name'>{{item.ProductName}}</div>
                                 <div class='variation-badge'>{{item.ModelName}}</div>
-                                <div v-if='item.Level' class='location-badge'>
+                                <div v-if='item.Level' class='location-badge'>  
                                     <i class='bi bi-geo-alt-fill'></i>
                                     <span> Ngăn {{item.Level}}</span>
                                     <span v-if='item.Box'> - Thùng {{item.Box}}</span>
@@ -619,7 +616,7 @@
                                 </div>
                             </div>
                             <div class='qty-box'>
-                                <span class='qty-text' :class='{red: item.TotalQty > 1}'>{{item.TotalQty}}</span>
+                                <span class='qty-text' :class='{red: item.TotalQty > 1}'>×{{item.TotalQty}}</span>
                                 <input type='checkbox' class='big-checkbox mt-2' v-model='item.Picked'>
                             </div>
                         </div>
@@ -688,7 +685,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'></script>
@@ -1152,11 +1148,47 @@
 
                     try { fetch('/api/sync', { method: 'POST' }); } catch { }
                 },
-                printOrders() {
-                    const selected = this.orders.filter(o => o.Selected);
-                    selected.forEach(o => o.Printed = true);
-                    alert('Đang gửi lệnh in cho ' + selected.length + ' đơn...');
-                },
+                async printOrders() {
+                const selected = this.orders.filter(o => o.Selected);
+                if (selected.length === 0) return;
+
+                if (!confirm(`Xác nhận in ${selected.length} đơn trên máy chủ?`)) return;
+
+                this.isPrinting = true; // Hiện màn hình chờ
+                const ids = selected.map(o => o.OrderId);
+
+                try {
+                    const res = await fetch('/api/print', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ Ids: ids })
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        let msg = `Máy chủ đã in xong ${data.processed.length} đơn.`;
+                        if (data.errors && data.errors.length > 0) msg += `\nLỗi ${data.errors.length} đơn.`;
+                        alert(msg);
+
+                        // Cập nhật giao diện
+                        this.orders.forEach(o => {
+                            if (data.processed.includes(o.OrderId)) {
+                                o.Selected = false; // Bỏ chọn
+                                o.Printed = true;   // Hiện icon máy in
+                            }
+                        });
+                    } else {
+                        alert('Lỗi: ' + (data.message || 'Không xác định'));
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    alert('Lỗi kết nối tới máy chủ!');
+                } finally {
+                    this.isPrinting = false; // Tắt màn hình chờ
+                }
+            },
                 startPicking() {
                     const selected = this.orders.filter(o => o.Selected);
                     if (selected.length === 0) return;
