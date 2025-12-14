@@ -6,14 +6,15 @@ namespace ShopeeServer
     {
         public string OrderId { get; set; } = ""; // Mã đơn hàng (Order SN)
         public int Status { get; set; } = 0; // 0: Mới, 1: Đã in/Xử lý
-        public string AssignedTo { get; set; } = ""; // Tên nhân viên
         public long UpdateAt { get; set; } // Thời gian đặt hàng
-        public List<OrderItem> Items { get; set; } = new List<OrderItem>();
+        public List<OrderItem> Items { get; set; } = [];
         public decimal TotalAmount { get; set; } = 0; // Tổng tiền đơn
         public decimal TotalItems { get; set; } = 0; // Tổng số món
         public string ShippingCarrier { get; set; } = ""; // Đơn vị vận chuyển (Ví dụ: SPX Express, J&T...)
         public string TrackingNumber { get; set; } = "";
         public bool Printed { get; set; } = false; // True khi API trả về status = READY
+        public string Picker { get; set; } = "";       // Người soạn
+        public string PickingStatus { get; set; } = "";// Trạng thái soạn
 
         // UI Helper (Không lưu DB)
         public bool Selected { get; set; } = false;
@@ -35,8 +36,14 @@ namespace ShopeeServer
 
         // Thuộc tính dùng cho giao diện Batch Picking
         public bool Picked { get; set; } = false;
-        public List<string> OrderIds { get; set; } = new List<string>();
+        public List<string> OrderIds { get; set; } = [];
         public int TotalQty { get; set; }
         public bool ShowDetail { get; set; } = false;
+    }
+    public class BatchUpdateReq
+    {
+        public List<string>? Ids { get; set; }
+        public string? Field { get; set; } // "picker" hoặc "status"
+        public string? Value { get; set; }
     }
 }

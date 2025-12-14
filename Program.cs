@@ -16,7 +16,7 @@ namespace ShopeeServer
     class Program
     {
         // --- 1. HỆ THỐNG LOG VÀO BỘ NHỚ ---
-        private static List<string> _serverLogs = new List<string>();
+        private static List<string> _serverLogs = new();
         public static void Log(string msg)
         {
             try
@@ -38,7 +38,7 @@ namespace ShopeeServer
             catch { }
         }
 
-        private static readonly Regex LocationRegex = new Regex(@"\[(?<Shelf>\d{1,2})N(?<Level>\d)(?:-(?<Box>\d))?\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex LocationRegex = new(@"\[(?<Shelf>\d{1,2})N(?<Level>\d)(?:-(?<Box>\d))?\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public static Dictionary<string, string> GetItemLocation(string input)
         {
@@ -54,8 +54,8 @@ namespace ShopeeServer
             return resultData;
         }
 
-        private static List<Order> _dbOrders = new List<Order>();
-        private static object _lock = new object();
+        private static List<Order> _dbOrders = new();
+        private static object _lock = new();
 
         static async Task Main(string[] args)
         {
@@ -130,9 +130,9 @@ namespace ShopeeServer
         }
 
         // Helper: Lấy danh sách ID theo trạng thái
-        static async Task<List<string>> FetchIds(string status, long from, long to)
+        static async Task<List<string>?> FetchIds(string status, long from, long to)
         {
-            List<string> allIds = new List<string>();
+            List<string> allIds = new();
             string cursor = ""; // Con trỏ trang, bắt đầu là rỗng
             bool more = true;   // Cờ báo còn trang tiếp theo hay không
 
@@ -206,45 +206,43 @@ namespace ShopeeServer
             {
                 string snStr = string.Join(",", ids.Skip(i).Take(50));
                 string detailJson = await ShopeeApiHelper.GetOrderDetails(snStr);
-                using (JsonDocument dDoc = JsonDocument.Parse(detailJson))
+                using JsonDocument dDoc = JsonDocument.Parse(detailJson);
+                if (dDoc.RootElement.TryGetProperty("response", out var dr) && dr.TryGetProperty("order_list", out var dl))
                 {
-                    if (dDoc.RootElement.TryGetProperty("response", out var dr) && dr.TryGetProperty("order_list", out var dl))
+                    lock (_lock)
                     {
-                        lock (_lock)
+                        foreach (var o in dl.EnumerateArray())
                         {
-                            foreach (var o in dl.EnumerateArray())
+                            var ord = new Order
                             {
-                                var ord = new Order
-                                {
-                                    OrderId = o.GetProperty("order_sn").GetString()!,
-                                    UpdateAt = o.GetProperty("update_time").GetInt64(),
-                                    Status = status,// <--- Gán trạng thái 0 hoặc 1 tùy nguồn
-                                    Note = o.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "",
+                                OrderId = o.GetProperty("order_sn").GetString()!,
+                                UpdateAt = o.GetProperty("update_time").GetInt64(),
+                                Status = status,// <--- Gán trạng thái 0 hoặc 1 tùy nguồn
+                                Note = o.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "",
 
-                                    TotalAmount = o.TryGetProperty("total_amount", out var t) ? t.GetDecimal() : 0,
-                                    ShippingCarrier = o.TryGetProperty("shipping_carrier", out var sc) ? sc.GetString() ?? "Khác" : "Khác"
-                                };
-                                foreach (var it in o.GetProperty("item_list").EnumerateArray())
+                                TotalAmount = o.TryGetProperty("total_amount", out var t) ? t.GetDecimal() : 0,
+                                ShippingCarrier = o.TryGetProperty("shipping_carrier", out var sc) ? sc.GetString() ?? "Khác" : "Khác"
+                            };
+                            foreach (var it in o.GetProperty("item_list").EnumerateArray())
+                            {
+                                string name = it.GetProperty("model_name").GetString()!;
+                                Dictionary<string, string> itemLocation = GetItemLocation(name);
+                                ord.Items.Add(new OrderItem
                                 {
-                                    string name = it.GetProperty("model_name").GetString()!;
-                                    Dictionary<string, string> itemLocation = GetItemLocation(name);
-                                    ord.Items.Add(new OrderItem
-                                    {
-                                        ItemId = it.GetProperty("item_id").GetInt64(),
-                                        ProductName = it.GetProperty("item_name").GetString()!,
-                                        ModelName = name,
-                                        ImageUrl = it.GetProperty("image_info").GetProperty("image_url").GetString()!,
-                                        Quantity = it.GetProperty("model_quantity_purchased").GetInt32(),
-                                        Price = it.TryGetProperty("model_discounted_price", out var p) ? p.GetDecimal() : 0,
-                                        Shelf = itemLocation.ContainsKey("Shelf") ? itemLocation["Shelf"] : null,
-                                        Level = itemLocation.ContainsKey("Level") ? itemLocation["Level"] : null,
-                                        Box = itemLocation.ContainsKey("Box") ? itemLocation["Box"] : null,
-                                    });
-                                }
-                                // Kiểm tra lần cuối để tránh trùng lặp
-                                if (!_dbOrders.Any(x => x.OrderId == ord.OrderId))
-                                    _dbOrders.Add(ord);
+                                    ItemId = it.GetProperty("item_id").GetInt64(),
+                                    ProductName = it.GetProperty("item_name").GetString()!,
+                                    ModelName = name,
+                                    ImageUrl = it.GetProperty("image_info").GetProperty("image_url").GetString()!,
+                                    Quantity = it.GetProperty("model_quantity_purchased").GetInt32(),
+                                    Price = it.TryGetProperty("model_discounted_price", out var p) ? p.GetDecimal() : 0,
+                                    Shelf = itemLocation.ContainsKey("Shelf") ? itemLocation["Shelf"] : null,
+                                    Level = itemLocation.ContainsKey("Level") ? itemLocation["Level"] : null,
+                                    Box = itemLocation.ContainsKey("Box") ? itemLocation["Box"] : null,
+                                });
                             }
+                            // Kiểm tra lần cuối để tránh trùng lặp
+                            if (!_dbOrders.Any(x => x.OrderId == ord.OrderId))
+                                _dbOrders.Add(ord);
                         }
                     }
                 }
@@ -272,26 +270,24 @@ namespace ShopeeServer
                 try
                 {
                     string jsonRes = await ShopeeApiHelper.GetBatchDocResult(batch);
-                    using (JsonDocument doc = JsonDocument.Parse(jsonRes))
+                    using JsonDocument doc = JsonDocument.Parse(jsonRes);
+                    if (doc.RootElement.TryGetProperty("response", out var resp) &&
+                        resp.TryGetProperty("result_list", out var list))
                     {
-                        if (doc.RootElement.TryGetProperty("response", out var resp) &&
-                            resp.TryGetProperty("result_list", out var list))
+                        lock (_lock)
                         {
-                            lock (_lock)
+                            foreach (var item in list.EnumerateArray())
                             {
-                                foreach (var item in list.EnumerateArray())
-                                {
-                                    string sn = item.GetProperty("order_sn").GetString();
-                                    string status = item.TryGetProperty("status", out var s) ? s.GetString() : "FAILED";
+                                string sn = item.GetProperty("order_sn").GetString();
+                                string status = item.TryGetProperty("status", out var s) ? s.GetString() : "FAILED";
 
-                                    // Status có thể là: PROCESSING, READY, FAILED
-                                    if (status == "READY")
+                                // Status có thể là: PROCESSING, READY, FAILED
+                                if (status == "READY")
+                                {
+                                    var order = _dbOrders.FirstOrDefault(o => o.OrderId == sn);
+                                    if (order != null)
                                     {
-                                        var order = _dbOrders.FirstOrDefault(o => o.OrderId == sn);
-                                        if (order != null)
-                                        {
-                                            order.Printed = true; // Đánh dấu là Đã in (File đã sẵn sàng)
-                                        }
+                                        order.Printed = true; // Đánh dấu là Đã in (File đã sẵn sàng)
                                     }
                                 }
                             }
@@ -441,8 +437,8 @@ namespace ShopeeServer
                             // Parse JSON đơn giản nếu body gửi lên là {"url": "..."}
                             if (body.StartsWith("{"))
                             {
-                                using (JsonDocument tmp = JsonDocument.Parse(body))
-                                    if (tmp.RootElement.TryGetProperty("url", out var u)) fullUrl = u.GetString();
+                                using JsonDocument tmp = JsonDocument.Parse(body);
+                                if (tmp.RootElement.TryGetProperty("url", out var u)) fullUrl = u.GetString();
                             }
 
                             if (!fullUrl.Contains("code=")) throw new Exception("Link không chứa mã code!");
@@ -563,6 +559,7 @@ namespace ShopeeServer
                         _ = Task.Run(() => CoreEngineSync());
                         byte[] b = Encoding.UTF8.GetBytes("{}"); resp.OutputStream.Write(b, 0, b.Length);
                     }
+                    // . API NOTE ---
                     else if (url == "/api/note" && req.HttpMethod == "POST")
                     {
                         string id = req.QueryString["id"];
@@ -570,6 +567,31 @@ namespace ShopeeServer
                         string content = await reader.ReadToEndAsync();
                         lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == id); if (o != null) o.Note = content; }
                         byte[] b = Encoding.UTF8.GetBytes("OK"); resp.OutputStream.Write(b, 0, b.Length);
+                    }
+                    // 10. API  ---
+                    else if (url == "/api/update-batch" && req.HttpMethod == "POST")
+                    {
+                        using var reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                        string json = await reader.ReadToEndAsync();
+                        
+                        // Định nghĩa class tạm để hứng dữ liệu
+                        var data = JsonSerializer.Deserialize<BatchUpdateReq>(json); // Xem định nghĩa class ở dưới cùng file này
+                        
+                        if (data != null && data.Ids != null)
+                        {
+                            lock (_lock)
+                            {
+                                var targets = _dbOrders.Where(o => data.Ids.Contains(o.OrderId)).ToList();
+                                foreach (var o in targets)
+                                {
+                                    if (data.Field == "picker") o.Picker = data.Value;
+                                    if (data.Field == "status") o.PickingStatus = data.Value;
+                                }
+                            }
+                            Log($"[UPDATE] Đã cập nhật {data.Field}='{data.Value}' cho {data.Ids.Count} đơn.");
+                            byte[] b = Encoding.UTF8.GetBytes("OK");
+                            resp.OutputStream.Write(b, 0, b.Length);
+                        }
                     }
                     resp.Close();
                 }
