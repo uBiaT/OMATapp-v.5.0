@@ -9,6 +9,7 @@ using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
+using System.Linq;
 
 namespace ShopeeServer
 {
@@ -24,7 +25,6 @@ namespace ShopeeServer
         public static long ShopId { get; private set; }
         public static string AccessToken { get; private set; } = "";
         public static string RefreshToken { get; private set; } = "";
-        //public static string AppPassword { get; private set; } = "";
 
         static ShopeeApiHelper() { LoadConfig(); }
 
@@ -42,7 +42,6 @@ namespace ShopeeServer
                 PartnerKey = config["PartnerKey"] ?? "";
                 BaseUrl = config["BaseUrl"] ?? "https://partner.shopeemobile.com";
                 CallbackUrl = config["CallbackUrl"] ?? "";
-                //AppPassword = config["AppPassword"] ?? "";
 
                 long.TryParse(config["SavedShopId"], out long sid); ShopId = sid;
                 AccessToken = config["SavedAccessToken"] ?? "";
@@ -82,7 +81,6 @@ namespace ShopeeServer
             catch (Exception ex)
             {
                 Program.Log($"[Save Error] {ex.Message}");
-                SaveTokenToConfig(ShopId, "","");
             }
         }
 
@@ -153,30 +151,19 @@ namespace ShopeeServer
             };
             foreach (var k in p) q[k.Key] = k.Value;
 
-            // Tạo URL đầy đủ để debug nếu cần
             string requestUrl = QueryHelpers.AddQueryString(BaseUrl + path, q);
-
-            // In ra Console (màu xám hoặc vàng) để dễ nhìn
             Program.Log($"[API-GET] {path}");
-            Program.Log(requestUrl);
 
             using var client = new HttpClient();
 
             try
             {
-                // 2. Dùng GetAsync trước để kiểm tra Status Code
                 var response = await client.GetAsync(requestUrl);
-
-                // Nếu Shopee trả về lỗi (403, 400, 500...), ném lỗi ra catch
-                response.EnsureSuccessStatusCode();
-
-                //Program.Log(await response.Content.ReadAsStringAsync());
-
+                // response.EnsureSuccessStatusCode(); // Tùy chọn: Có thể bật dòng này nếu muốn catch lỗi HTTP 4xx/5xx
                 return await response.Content.ReadAsStringAsync();
             }
             catch (HttpRequestException httpEx)
             {
-                // In lỗi cụ thể: Ví dụ "403 Forbidden" hay "404 Not Found"
                 Program.Log($"[HTTP ERR] {httpEx.StatusCode} - {httpEx.Message}");
                 return "{\"error\":\"network_error\", \"detail\":\"" + httpEx.Message + "\"}";
             }
@@ -186,6 +173,7 @@ namespace ShopeeServer
                 return "{\"error\":\"network_error\"}";
             }
         }
+
         public static async Task<string> CallPostAPI(string path, object body)
         {
             if (string.IsNullOrEmpty(AccessToken)) return "{\"error\":\"no_token\"}";
@@ -195,17 +183,15 @@ namespace ShopeeServer
 
             using var client = new HttpClient();
             var content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-            string jsonBody = JsonSerializer.Serialize(body);
             try
             {
                 var resp = await client.PostAsync(url, content);
                 Program.Log($"[API-POST] {path}");
-                Program.Log($"[API-POST] {url}");
-                //Program.Log($"[API-POST] {resp.Content.ReadAsStringAsync()}");
                 return await resp.Content.ReadAsStringAsync();
             }
             catch { return "{\"error\":\"network_error\"}"; }
         }
+
         public static async Task<byte[]> Download(string path, object body)
         {
             long ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -223,25 +209,24 @@ namespace ShopeeServer
         }
 
         // --- API WRAPPERS ---
-        // Trong file ShopeeApi.cs
 
-        // Sửa hàm GetOrderList thành như sau:
         public static async Task<string> GetOrderList(long fromDate, long toDate, string status = "READY_TO_SHIP", string cursor = "")
         {
             var p = new Dictionary<string, string> {
-        { "time_range_field", "update_time" },
-        { "time_from", fromDate.ToString() },
-        { "time_to", toDate.ToString() },
-        { "page_size", "100" },
-        { "order_status", status }, // <--- Dùng tham số truyền vào
-        { "request_order_status_pending", "true" },
-        { "cursor", cursor }
-    };
+                { "time_range_field", "update_time" },
+                { "time_from", fromDate.ToString() },
+                { "time_to", toDate.ToString() },
+                { "page_size", "100" },
+                { "order_status", status },
+                { "request_order_status_pending", "true" },
+                { "cursor", cursor }
+            };
             return await CallGetAPI("/api/v2/order/get_order_list", p);
         }
 
         public static async Task<string> GetOrderDetails(string sns)
         {
+            if (string.IsNullOrEmpty(sns)) return "{}";
             return await CallGetAPI("/api/v2/order/get_order_detail", new Dictionary<string, string> {
                 { "order_sn_list", sns }, { "request_order_status_pending", "true" }, { "response_optional_fields", "item_list,total_amount,shipping_carrier" }
             });
@@ -256,39 +241,29 @@ namespace ShopeeServer
 
         // --- CÁC API LOGISTICS CỤ THỂ ---
 
-        // B1: Lấy tham số vận chuyển (Pickup hay Dropoff?)
-        public static async Task<string> GetShippingParam(string sn) =>
-            await CallGetAPI("/api/v2/logistics/get_shipping_parameter", new Dictionary<string, string> { { "order_sn", sn } });
+        public static async Task<string> GetShippingParam(string sn)
+        {
+            if (string.IsNullOrEmpty(sn)) return "{}";
+            return await CallGetAPI("/api/v2/logistics/get_shipping_parameter", new Dictionary<string, string> { { "order_sn", sn } });
+        }
 
-        // B2: Báo chuẩn bị hàng
         public static async Task<string> ShipOrder(object payload) =>
             await CallPostAPI("/api/v2/logistics/ship_order", payload);
 
         public static async Task<string> GetBatchDocResult(List<string> orderSns)
         {
             if (orderSns == null || orderSns.Count == 0) return "{}";
-
-            // Tạo danh sách object theo cấu trúc API yêu cầu
             var orderListPayload = orderSns.Select(sn => new { order_sn = sn }).ToArray();
-
-            var payload = new
-            {
-                order_list = orderListPayload,
-                shipping_document_type = "THERMAL_AIR_WAYBILL"
-            };
-
+            var payload = new { order_list = orderListPayload, shipping_document_type = "THERMAL_AIR_WAYBILL" };
             return await CallPostAPI("/api/v2/logistics/get_shipping_document_result", payload);
         }
 
-        // B3: Tạo yêu cầu in (In Nhiệt)
         public static async Task<string> CreateDoc(string sn) =>
             await CallPostAPI("/api/v2/logistics/create_shipping_document", new { order_list = new[] { new { order_sn = sn } }, shipping_document_type = "THERMAL_AIR_WAYBILL" });
 
-        // B4: Kiểm tra trạng thái tạo file
         public static async Task<string> GetDocResult(string sn) =>
             await CallPostAPI("/api/v2/logistics/get_shipping_document_result", new { order_list = new[] { new { order_sn = sn } } });
 
-        // B5: Tải file PDF
         public static async Task<byte[]> DownloadDoc(string sn) =>
             await Download("/api/v2/logistics/download_shipping_document", new { order_list = new[] { new { order_sn = sn } }, shipping_document_type = "THERMAL_AIR_WAYBILL" });
     }
