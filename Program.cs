@@ -587,9 +587,7 @@ namespace ShopeeServer
 
                         foreach (var printSn in data.Ids ?? new List<string>())
                         {
-                            // --> [FIX] Bỏ qua nếu chuỗi rỗng
                             if (string.IsNullOrEmpty(printSn)) continue;
-
                             Log($"[PRINT] Đang xử lý đơn: {printSn}...");
 
                             // 1. Chờ Shopee tạo file (Polling)
@@ -612,24 +610,56 @@ namespace ShopeeServer
                                 catch { }
 
                                 if (status == "READY") { isReady = true; break; }
-                                if (status != "PROCESSING") await ShopeeApiHelper.CreateDoc(printSn); // Nếu chưa có thì tạo
+
+                                // [LOGIC MỚI] Nếu chưa có file (PROCESSING/FAILED), thử tạo lại kèm Tracking Number
+                                if (status != "PROCESSING")
+                                {
+                                    // B1: Lấy Tracking Number
+                                    string trackJson = await ShopeeApiHelper.GetTrackingNumber(printSn);
+                                    string trackingNum = "";
+                                    try
+                                    {
+                                        using (JsonDocument tDoc = JsonDocument.Parse(trackJson))
+                                        {
+                                            if (tDoc.RootElement.TryGetProperty("response", out var tr) &&
+                                                tr.TryGetProperty("tracking_number", out var tVal))
+                                            {
+                                                trackingNum = tVal.GetString() ?? "";
+                                            }
+                                        }
+                                    }
+                                    catch { }
+
+                                    // B2: Gọi lệnh tạo Doc với Tracking Number
+                                    if (!string.IsNullOrEmpty(trackingNum))
+                                    {
+                                        await ShopeeApiHelper.CreateDoc(printSn, trackingNum);
+                                    }
+                                    else
+                                    {
+                                        Log($"[WARN] Không lấy được Tracking Number cho {printSn}");
+                                    }
+                                }
+
                                 await Task.Delay(1500);
                             }
 
+                            // ... (Phần code tải file và in giữ nguyên như cũ) ...
                             if (!isReady) { errorIds.Add(printSn); continue; }
 
-                            // 2. Tải file về
+                            // (Copy lại phần tải file và in của bạn vào đây, không thay đổi gì)
                             string filePath = Path.Combine(tempPath, $"{printSn}.pdf");
                             if (!File.Exists(filePath))
-                            {
+                            { /* Logic tải file cũ */
                                 byte[] pdfBytes = await ShopeeApiHelper.DownloadDoc(printSn);
                                 if (pdfBytes.Length > 0) await File.WriteAllBytesAsync(filePath, pdfBytes);
                                 else { errorIds.Add(printSn); continue; }
                             }
 
-                            // 3. GỌI LỆNH IN TRÊN SERVER (In ngầm)
+                            // Logic gọi SumatraPDF cũ...
                             if (File.Exists(printerTool))
                             {
+                                // ... Code in cũ ...
                                 try
                                 {
                                     var p = new System.Diagnostics.Process();
@@ -638,22 +668,12 @@ namespace ShopeeServer
                                     p.StartInfo.CreateNoWindow = true;
                                     p.StartInfo.UseShellExecute = false;
                                     p.Start();
-                                    Log($"[PRINT OK] Đã gửi lệnh in đơn {printSn}");
+                                    lock (_lock) { var o = _dbOrders.FirstOrDefault(x => x.OrderId == printSn); if (o != null) o.Printed = true; }
+                                    processedIds.Add(printSn);
+                                    Log($"[PRINT OK] Đã in đơn {printSn}");
                                 }
-                                catch (Exception ex)
-                                {
-                                    Log($"[PRINT ERROR] {ex.Message}");
-                                    errorIds.Add(printSn);
-                                }
+                                catch (Exception ex) { Log($"[PRINT ERROR] {ex.Message}"); errorIds.Add(printSn); }
                             }
-
-                            // Cập nhật trạng thái
-                            lock (_lock)
-                            {
-                                var o = _dbOrders.FirstOrDefault(x => x.OrderId == printSn);
-                                if (o != null) o.Printed = true;
-                            }
-                            processedIds.Add(printSn);
                         }
 
                         var result = new { success = true, processed = processedIds, errors = errorIds };

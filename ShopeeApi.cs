@@ -257,10 +257,25 @@ namespace ShopeeServer
             var payload = new { order_list = orderListPayload, shipping_document_type = "THERMAL_AIR_WAYBILL" };
             return await CallPostAPI("/api/v2/logistics/get_shipping_document_result", payload);
         }
-
-        public static async Task<string> CreateDoc(string sn) =>
-            await CallPostAPI("/api/v2/logistics/create_shipping_document", new { order_list = new[] { new { order_sn = sn } }, shipping_document_type = "THERMAL_AIR_WAYBILL" });
-
+        public static async Task<string> GetTrackingNumber(string sn)
+        {
+            // API này trả về tracking_number để dùng cho việc tạo doc
+            return await CallGetAPI("/api/v2/logistics/get_tracking_number", new Dictionary<string, string> {
+                { "order_sn", sn }
+            });
+        }
+        public static async Task<string> CreateDoc(string sn, string trackingNumber)
+        {
+            // Payload yêu cầu tracking_number nếu chưa có
+            var payload = new
+            {
+                order_list = new[] {
+                    new { order_sn = sn, tracking_number = trackingNumber }
+                },
+                shipping_document_type = "THERMAL_AIR_WAYBILL"
+            };
+            return await CallPostAPI("/api/v2/logistics/create_shipping_document", payload);
+        }
         public static async Task<string> GetDocResult(string sn) =>
             await CallPostAPI("/api/v2/logistics/get_shipping_document_result", new { order_list = new[] { new { order_sn = sn } } });
 

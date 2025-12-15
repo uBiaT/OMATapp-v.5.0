@@ -3,7 +3,7 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
-    <title>Shopee WMS Pro v6.1</title>
+    <title>Shopee WMS Pro v6.3</title>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
     <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'>
     <script src='https://unpkg.com/vue@3/dist/vue.global.js'></script>
@@ -11,10 +11,11 @@
         html, body {
             height: 100%;
             overflow: hidden;
-            background-color: #f4f6f8 ;
+            background-color: #f4f6f8;
             font-size: 14px;
             font-family: -apple-system, sans-serif;
-            user-select: none;
+            user-select: none; /* Chống bôi đen text khi bấm giữ */
+            -webkit-user-select: none;
         }
 
         #app {
@@ -56,10 +57,10 @@
             transition: height 0.2s ease-out;
         }
 
-            .pull-refresh-loader.refreshing {
-                height: 50px !important;
-                transition: height 0.2s;
-            }
+        .pull-refresh-loader.refreshing {
+            height: 50px !important;
+            transition: height 0.2s;
+        }
 
         .pull-icon {
             transition: transform 0.3s;
@@ -67,18 +68,16 @@
             margin-right: 8px;
         }
 
-            .pull-icon.rotate {
-                transform: rotate(180deg);
-            }
+        .pull-icon.rotate {
+            transform: rotate(180deg);
+        }
 
         .spin-icon {
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            100% {
-                transform: rotate(360deg);
-            }
+            100% { transform: rotate(360deg); }
         }
 
         .card-item {
@@ -185,9 +184,9 @@
             color: #333;
         }
 
-            .qty-text.red {
-                color: #db0606;
-            }
+        .qty-text.red {
+            color: #db0606;
+        }
 
         .order-header {
             padding: 12px;
@@ -200,14 +199,14 @@
             transition: all 0.2s;
         }
 
-            .order-header.active {
-                background: #e3f2fd;
-                border: 2px solid #90caf9;
-                border-left: 5px solid #0d6efd;
-                margin-bottom: 0;
-                border-radius: 4px 4px 0 0;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            }
+        .order-header.active {
+            background: #e3f2fd;
+            border: 2px solid #90caf9;
+            border-left: 5px solid #0d6efd;
+            margin-bottom: 0;
+            border-radius: 4px 4px 0 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
         .highlight-sn {
             color: #0000ff;
@@ -277,23 +276,23 @@
             font-weight: bold;
         }
 
-            .note-badge.normal {
-                background: #ffecb3;
-                color: #856404;
-                border: 1px solid #ffeeba;
-            }
+        .note-badge.normal {
+            background: #ffecb3;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
 
-            .note-badge.green {
-                background: #e8f5e9;
-                color: #2e7d32;
-                border: 1px solid #c8e6c9;
-            }
+        .note-badge.green {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
 
-            .note-badge.red {
-                background: #ffebee;
-                color: #c62828;
-                border: 1px solid #ffcdd2;
-            }
+        .note-badge.red {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
 
         .btn-float-bottom {
             position: fixed;
@@ -359,6 +358,22 @@
             color: #6c757d;
             text-transform: uppercase;
             margin: 8px 12px 4px;
+        }
+        
+        /* CSS MỚI CHO SELECTION MODAL */
+        .selection-option {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .selection-option:active {
+            background-color: #f0f0f0;
+        }
+        .selection-option i {
+            font-size: 1.2rem;
         }
     </style>
 </head>
@@ -522,22 +537,45 @@
                                     <span class='badge border'
                                           :style='getPickerStyle(order.Picker)'
                                           style='cursor:pointer; font-weight:500'
-                                          @click.stop='cyclePicker(order)'>
-                                        <i class='bi bi-person-fill me-1'></i>
-                                        {{ getPickerLabel(order.Picker) }}
+                                          @touchstart.stop='startPress("picker", order)'
+                                          @touchend.stop='cancelPress'
+                                          @mousedown.stop='startPress("picker", order)'
+                                          @mouseup.stop='cancelPress'
+                                          @contextmenu.prevent
+                                          @click.stop>
+                                        <i class='bi bi-person-fill me-1'></i>{{ getPickerLabel(order.Picker) }}
                                     </span>
 
                                     <span class='badge border'
                                           :style='getStatusStyle(order.PickingStatus)'
                                           style='cursor:pointer; font-weight:500'
-                                          @click.stop='cycleStatus(order)'>
+                                          @touchstart.stop='startPress("status", order)'
+                                          @touchend.stop='cancelPress'
+                                          @mousedown.stop='startPress("status", order)'
+                                          @mouseup.stop='cancelPress'
+                                          @contextmenu.prevent
+                                          @click.stop>
                                         <i class='bi me-1' :class='getStatusIcon(order.PickingStatus)'></i>
                                         {{ getStatusLabel(order.PickingStatus) }}
                                     </span>
                                 </div>
 
-                                <i v-if='!order.Note' class='bi bi-pencil-square text-secondary me-1' style='cursor:pointer' @click.stop='editNote(order)'></i>
-                                <div v-else class='note-badge' :class='getNoteClass(order.Note)' @click.stop='editNote(order)'>
+                                <i v-if='!order.Note' class='bi bi-pencil-square text-secondary me-1' 
+                                   @touchstart.stop='startPress("note", order)' 
+                                   @touchend.stop='cancelPress'
+                                   @mousedown.stop='startPress("note", order)'
+                                   @mouseup.stop='cancelPress'
+                                   @contextmenu.prevent
+                                   @click.stop
+                                   style='cursor:pointer'></i>
+                                
+                                <div v-else class='note-badge' :class='getNoteClass(order.Note)' 
+                                     @touchstart.stop='startPress("note", order)' 
+                                     @touchend.stop='cancelPress'
+                                     @mousedown.stop='startPress("note", order)'
+                                     @mouseup.stop='cancelPress'
+                                     @contextmenu.prevent
+                                     @click.stop>
                                     <i class='bi bi-sticky-fill me-1'></i>{{order.Note}}
                                 </div>
                             </div>
@@ -653,6 +691,23 @@
             </div>
         </div>
 
+        <div class='modal fade' id='selectionModal' tabindex='-1'>
+            <div class='modal-dialog modal-dialog-centered modal-dialog-scrollable'>
+                <div class='modal-content'>
+                    <div class='modal-header bg-light py-2'>
+                        <h6 class='modal-title fw-bold'>{{ selectionTitle }}</h6>
+                        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+                    </div>
+                    <div class='modal-body p-0'>
+                        <div v-for='opt in selectionOptions' :key='opt.value' class='selection-option' @click='selectOption(opt)'>
+                            <div class='fw-bold' :style='{color: opt.color || "#000"}'>{{ opt.label }}</div>
+                            <i v-if='opt.icon' class='bi' :class='opt.icon'></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class='modal fade' id='productModal' tabindex='-1'>
             <div class='modal-dialog modal-dialog-centered'>
                 <div class='modal-content'>
@@ -692,22 +747,24 @@
     <script>
         const { createApp } = Vue;
 
-        // === CẤU HÌNH NGƯỜI SOẠN & TRẠNG THÁI ===
+        // === CẤU HÌNH PICKER & STATUS ===
         const PICKER_OPTIONS = [
-            { value: '', label: 'Chưa gán', color: '#f0f0f0', text: '#666' },
-            { value: 'Tài', label: 'Tài', color: '#e3f2fd', text: '#0d47a1' },
-            { value: 'Oanh', label: 'Oanh', color: '#f3e5f5', text: '#4a148c' },
-            { value: 'My', label: 'My', color: '#e8f5e9', text: '#1b5e20' },
-            { value: 'Mẹ Hà', label: 'Mẹ Hà', color: '#f5e8e8ff', text: '#5e1b1bff' }
+            { value: '', label: 'Chưa gán', color: '#666' },
+            { value: 'Tài', label: 'Tài', color: '#0d47a1' },
+            { value: 'Oanh', label: 'Oanh', color: '#4a148c' },
+            { value: 'My', label: 'My', color: '#1b5e20' },
+            { value: 'Mẹ Hà', label: 'Mẹ Hà', color: '#5e1b1bff' }
         ];
 
         const STATUS_OPTIONS = [
-            { value: '', label: 'Chưa soạn', color: '#6c757d', icon: 'bi-circle', bg: '#f8f9fa' },
-            { value: 'dang_soan', label: 'Đang soạn', color: '#0d6efd', icon: 'bi-hourglass-split', bg: '#cfe2ff' },
-            { value: 'da_soan', label: 'Đã soạn', color: '#198754', icon: 'bi-check-circle-fill', bg: '#d1e7dd' },
-            { value: 'het_hang', label: 'Hết hàng', color: '#dc3545', icon: 'bi-x-octagon-fill', bg: '#f8d7da' }
+            { value: '', label: 'Chưa soạn', color: '#6c757d', icon: 'bi-circle' },
+            { value: 'dang_soan', label: 'Đang soạn', color: '#0d6efd', icon: 'bi-hourglass-split' },
+            { value: 'da_soan', label: 'Đã soạn', color: '#198754', icon: 'bi-check-circle-fill' },
+            { value: 'het_hang', label: 'Hết hàng', color: '#dc3545', icon: 'bi-x-octagon-fill' }
         ];
 
+        const STATUS_BG = { '': '#f8f9fa', 'dang_soan': '#cfe2ff', 'da_soan': '#d1e7dd', 'het_hang': '#f8d7da' };
+        
         const CARRIER_COLORS = {
             'SPX Express': '#ee4d2d',
             'J&T Express': '#ec1c24',
@@ -725,7 +782,7 @@
             data() {
                 return {
                     orders: [], tab: 'unprocessed', currentView: 'manager',
-                    sortDesc: false, logs: [], hasToken: false, loginUrl: '', callbackUrl: '',
+                    sortDesc: false, logs: [], hasToken: false, loginUrl: '',
                     isBatchMode: false, batchItems: [], showUnpickedHighlight: false,
                     openOrderId: null, loadingModal: false, modalItem: {}, variations: [],
                     zoomLevel: 1.0,
@@ -742,17 +799,26 @@
                     filterPickers: [],
                     filterStatuses: [],
                     pickerOptionsList: PICKER_OPTIONS,
-                    statusOptionsList: STATUS_OPTIONS
+                    statusOptionsList: STATUS_OPTIONS,
+
+                    // SELECTION MODAL
+                    selectionTitle: '',
+                    selectionOptions: [],
+                    selectionCallback: null,
+                    selectionModalInstance: null,
+
+                    // LONG PRESS
+                    pressTimer: null,
+                    pressingOrder: null,
+                    pressingType: null
                 }
             },
             computed: {
                 unprocessedOrders() { return this.orders.filter(o => o.Status === 0); },
                 processedOrders() { return this.orders.filter(o => o.Status === 1); },
-
                 currentTabList() {
                     return this.tab === 'unprocessed' ? this.unprocessedOrders : this.processedOrders;
                 },
-
                 availableCarriers() {
                     const groups = {};
                     this.currentTabList.forEach(o => {
@@ -766,21 +832,17 @@
                         color: this.getCarrierColor(name)
                     })).sort((a, b) => b.count - a.count);
                 },
-
                 printStatusOptions() {
                     const list = this.currentTabList;
                     const printedCount = list.filter(o => o.Printed).length;
-                    const notPrintedCount = list.length - printedCount;
                     return [
                         { label: 'Đã in', value: 'yes', count: printedCount },
-                        { label: 'Chưa in', value: 'no', count: notPrintedCount }
+                        { label: 'Chưa in', value: 'no', count: list.length - printedCount }
                     ];
                 },
-
                 activeFilterCount() {
                     return this.filterCarriers.length + this.filterPrintStatus.length + this.filterPickers.length + this.filterStatuses.length;
                 },
-
                 filteredOrders() {
                     let list = this.currentTabList;
                     if (this.filterCarriers.length > 0) {
@@ -794,16 +856,12 @@
                             return matchYes || matchNo;
                         });
                     }
-                    // Lọc Người soạn
                     if (this.filterPickers.length > 0) {
                         list = list.filter(o => this.filterPickers.includes(o.Picker || ''));
                     }
-                    // Lọc Trạng thái soạn
                     if (this.filterStatuses.length > 0) {
                         list = list.filter(o => this.filterStatuses.includes(o.PickingStatus || ''));
                     }
-
-                    // SẮP XẾP THEO UpdateAt
                     return [...list].sort((a, b) => this.sortDesc ? b.UpdateAt - a.UpdateAt : a.UpdateAt - b.UpdateAt);
                 },
                 selectedCount() { return this.orders.filter(o => o.Selected).length; },
@@ -849,12 +907,202 @@
                 setInterval(this.fetchLogs, 3000);
                 this.updateZoom();
                 this.confirmModalInstance = new bootstrap.Modal(document.getElementById('confirmModal'));
+                this.selectionModalInstance = new bootstrap.Modal(document.getElementById('selectionModal'));
 
                 this.$refs.scrollContainer.addEventListener('scroll', this.handleScroll);
                 window.addEventListener('resize', this.updateHeaderHeight);
                 setTimeout(this.updateHeaderHeight, 500);
             },
             methods: {
+                // --- LONG PRESS LOGIC (Đã sửa lại sensitivity) ---
+                startPress(type, order, event) {
+                    if (event && event.touches && event.touches.length > 0) {
+                        this.pressStartX = event.touches[0].clientX;
+                        this.pressStartY = event.touches[0].clientY;
+                    }
+                    this.pressingType = type;
+                    this.pressingOrder = order;
+                    
+                    // [SỬA 1] Tăng lên 1000ms để phân biệt rõ ràng giữa "Cuộn" và "Giữ"
+                    this.pressTimer = setTimeout(() => {
+                        this.triggerLongPressAction();
+                    }, 1000); 
+                },
+
+                handlePressMove(event) {
+                    if (!this.pressTimer) return;
+                    if (event && event.touches && event.touches.length > 0) {
+                        const moveX = event.touches[0].clientX;
+                        const moveY = event.touches[0].clientY;
+                        
+                        // [SỬA 2] Giảm xuống 1px. 
+                        // Chỉ cần ngón tay nhích nhẹ (hành động cuộn) là hủy lệnh giữ ngay lập tức.
+                        if (Math.hypot(moveX - this.pressStartX, moveY - this.pressStartY) > 1) {
+                            this.cancelPress();
+                        }
+                    }
+                },
+                cancelPress() {
+                    if (this.pressTimer) {
+                        clearTimeout(this.pressTimer);
+                        this.pressTimer = null;
+                        this.pressingOrder = null;
+                    }
+                },
+                triggerLongPressAction() {
+                    this.pressTimer = null;
+                    const o = this.pressingOrder;
+                    if (!o) return;
+                    
+                    if (navigator.vibrate) navigator.vibrate(50);
+
+                    if (this.pressingType === 'note') {
+                        this.editNote(o);
+                    } else if (this.pressingType === 'picker') {
+                        this.selectionTitle = 'Chọn Người soạn';
+                        this.selectionOptions = this.pickerOptionsList;
+                        this.selectionCallback = (val) => {
+                            o.Picker = val;
+                            this.apiUpdateBatch([o.OrderId], 'picker', val);
+                        };
+                        this.selectionModalInstance.show();
+                    } else if (this.pressingType === 'status') {
+                        this.selectionTitle = 'Chọn Trạng thái';
+                        this.selectionOptions = this.statusOptionsList;
+                        this.selectionCallback = (val) => {
+                            o.PickingStatus = val;
+                            this.apiUpdateBatch([o.OrderId], 'status', val);
+                        };
+                        this.selectionModalInstance.show();
+                    }
+                },
+
+                // --- SELECTION MODAL LOGIC ---
+                selectOption(opt) {
+                    if (this.selectionCallback) this.selectionCallback(opt.value);
+                    this.selectionModalInstance.hide();
+                },
+
+                // --- BATCH ACTIONS ---
+                batchAssignPicker() {
+                    const ids = this.filteredOrders.filter(o => o.Selected).map(o => o.OrderId);
+                    if (ids.length === 0) return;
+
+                    this.selectionTitle = `Gán Người soạn (${ids.length} đơn)`;
+                    this.selectionOptions = this.pickerOptionsList;
+                    this.selectionCallback = (val) => {
+                        this.filteredOrders.filter(o => o.Selected).forEach(o => o.Picker = val);
+                        this.apiUpdateBatch(ids, 'picker', val);
+                    };
+                    this.selectionModalInstance.show();
+                },
+                batchAssignStatus() {
+                    const ids = this.filteredOrders.filter(o => o.Selected).map(o => o.OrderId);
+                    if (ids.length === 0) return;
+
+                    this.selectionTitle = `Gán Trạng thái (${ids.length} đơn)`;
+                    this.selectionOptions = this.statusOptionsList;
+                    this.selectionCallback = (val) => {
+                        this.filteredOrders.filter(o => o.Selected).forEach(o => o.PickingStatus = val);
+                        this.apiUpdateBatch(ids, 'status', val);
+                    };
+                    this.selectionModalInstance.show();
+                },
+
+                // --- START PICKING (Đã thêm cập nhật trạng thái 'dang_soan') ---
+                startPicking() {
+                    const selected = this.orders.filter(o => o.Selected);
+                    if (selected.length === 0) return;
+
+                    // 1. Cập nhật trạng thái "Đang soạn" (dang_soan)
+                    const ids = selected.map(o => o.OrderId);
+                    this.apiUpdateBatch(ids, 'status', 'dang_soan'); // Gọi API cập nhật ngầm
+                    selected.forEach(o => o.PickingStatus = 'dang_soan'); // Cập nhật ngay giao diện
+
+                    // 2. Gom dữ liệu để hiển thị
+                    const agg = {};
+                    selected.forEach(order => {
+                        order.Items.forEach(item => {
+                            const key = item.ModelName;
+                            if (!agg[key]) agg[key] = {
+                                ProductName: item.ProductName,
+                                ModelName: item.ModelName,
+                                ImageUrl: item.ImageUrl,
+                                Shelf: item.Shelf,
+                                Level: item.Level,
+                                Box: item.Box,
+                                TotalQty: 0, OrderIds: [], Picked: false,
+                                ItemId: item.ItemId
+                            };
+                            agg[key].TotalQty += item.Quantity;
+                            agg[key].OrderIds.push(order.OrderId.slice(-4));
+                        });
+                    });
+                    this.batchItems = Object.values(agg);
+                    this.currentView = 'picking';
+                },
+
+                // --- FINISH PICKING ---
+                finishPicking() {
+                    const unpicked = this.batchItems.filter(i => !i.Picked);
+                    if (unpicked.length === 0) {
+                        this.applyStatusToOrders(this.batchItems, 'da_soan');
+                        this.closePicking();
+                    } else {
+                        this.showUnpickedHighlight = true;
+                        this.showConfirm(`Còn ${unpicked.length} loại chưa nhặt. Vẫn hoàn thành?`, () => {
+                            const picked = this.batchItems.filter(i => i.Picked);
+                            this.applyStatusToOrders(picked, 'da_soan');
+                            this.applyStatusToOrders(unpicked, ''); 
+                            this.closePicking();
+                        });
+                    }
+                },
+                applyStatusToOrders(items, statusVal) {
+                    const affectedOrderIds = new Set();
+                    items.forEach(item => {
+                        item.OrderIds.forEach(shortId => {
+                            const order = this.orders.find(o => o.OrderId.endsWith(shortId) && o.Selected);
+                            if (order && order.PickingStatus !== statusVal) {
+                                order.PickingStatus = statusVal;
+                                affectedOrderIds.add(order.OrderId);
+                            }
+                        });
+                    });
+                    const ids = Array.from(affectedOrderIds);
+                    if (ids.length > 0) this.apiUpdateBatch(ids, 'status', statusVal);
+                },
+
+                // --- HELPERS ---
+                getPickerConfig(val) { return this.pickerOptionsList.find(x => x.value === (val || '')) || this.pickerOptionsList[0]; },
+                getStatusConfig(val) { return this.statusOptionsList.find(x => x.value === (val || '')) || this.statusOptionsList[0]; },
+
+                getPickerLabel(val) { return this.getPickerConfig(val).label; },
+                getPickerStyle(val) {
+                    const cfg = this.getPickerConfig(val);
+                    return { backgroundColor: cfg.color, color: (['Tài','My','Oanh','Mẹ Hà'].includes(val)) ? '#fff' : (cfg.color==='#666'?'#fff':'#000'), borderColor: cfg.color };
+                },
+
+                getStatusLabel(val) { return this.getStatusConfig(val).label; },
+                getStatusIcon(val) { return this.getStatusConfig(val).icon; },
+                getStatusStyle(val) {
+                    const bg = STATUS_BG[val || ''] || '#f8f9fa';
+                    const c = this.statusOptionsList.find(x => x.value === (val || ''))?.color || '#6c757d';
+                    return { backgroundColor: bg, borderColor: bg, color: c };
+                },
+
+                async apiUpdateBatch(ids, field, value) {
+                    if (ids.length === 0) return;
+                    try {
+                        await fetch('/api/update-batch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ Ids: ids, Field: field, Value: value })
+                        });
+                    } catch (e) { console.error(e); }
+                },
+
+                // CÁC HÀM CƠ BẢN (Giữ nguyên)
                 updateHeaderHeight() {
                     this.$nextTick(() => {
                         if (this.$refs.mainHeader) {
@@ -887,7 +1135,6 @@
                         }
                     }
                 },
-
                 toggleCarrier(name) {
                     const idx = this.filterCarriers.indexOf(name);
                     if (idx > -1) this.filterCarriers.splice(idx, 1);
@@ -914,74 +1161,6 @@
                         if (name.includes(key) || name === key) return color;
                     }
                     return '#6c757d';
-                },
-
-                // --- HELPER STYLE CHO PICKER & STATUS ---
-                getPickerConfig(val) { return this.pickerOptionsList.find(x => x.value === (val || '')) || this.pickerOptionsList[0]; },
-                getStatusConfig(val) { return this.statusOptionsList.find(x => x.value === (val || '')) || this.statusOptionsList[0]; },
-
-                getPickerLabel(val) { return this.getPickerConfig(val).label; },
-                getPickerStyle(val) {
-                    const cfg = this.getPickerConfig(val);
-                    return { backgroundColor: cfg.color, color: cfg.text, borderColor: cfg.color };
-                },
-
-                getStatusLabel(val) { return this.getStatusConfig(val).label; },
-                getStatusIcon(val) { return this.getStatusConfig(val).icon; },
-                getStatusStyle(val) {
-                    const cfg = this.getStatusConfig(val);
-                    return { backgroundColor: cfg.bg, color: cfg.color, borderColor: cfg.bg };
-                },
-
-                cyclePicker(order) {
-                    const currentIdx = this.pickerOptionsList.findIndex(x => x.value === (order.Picker || ''));
-                    const nextIdx = (currentIdx + 1) % this.pickerOptionsList.length;
-                    const nextVal = this.pickerOptionsList[nextIdx].value;
-                    order.Picker = nextVal;
-                    this.apiUpdateBatch([order.OrderId], 'picker', nextVal);
-                },
-                cycleStatus(order) {
-                    const currentIdx = this.statusOptionsList.findIndex(x => x.value === (order.PickingStatus || ''));
-                    const nextIdx = (currentIdx + 1) % this.statusOptionsList.length;
-                    const nextVal = this.statusOptionsList[nextIdx].value;
-                    order.PickingStatus = nextVal;
-                    this.apiUpdateBatch([order.OrderId], 'status', nextVal);
-                },
-
-                batchAssignPicker() {
-                    let msg = "Nhập SỐ tương ứng để chọn Người soạn:\n";
-                    this.pickerOptionsList.forEach((opt, idx) => { msg += ` ${idx}. ${opt.label}\n`; });
-                    const input = prompt(msg);
-                    const idx = parseInt(input);
-                    if (!isNaN(idx) && this.pickerOptionsList[idx]) {
-                        const val = this.pickerOptionsList[idx].value;
-                        const ids = this.filteredOrders.filter(o => o.Selected).map(o => o.OrderId);
-                        this.filteredOrders.filter(o => o.Selected).forEach(o => o.Picker = val);
-                        this.apiUpdateBatch(ids, 'picker', val);
-                    }
-                },
-                batchAssignStatus() {
-                    let msg = "Nhập SỐ tương ứng để chọn Trạng thái:\n";
-                    this.statusOptionsList.forEach((opt, idx) => { msg += ` ${idx}. ${opt.label}\n`; });
-                    const input = prompt(msg);
-                    const idx = parseInt(input);
-                    if (!isNaN(idx) && this.statusOptionsList[idx]) {
-                        const val = this.statusOptionsList[idx].value;
-                        const ids = this.filteredOrders.filter(o => o.Selected).map(o => o.OrderId);
-                        this.filteredOrders.filter(o => o.Selected).forEach(o => o.PickingStatus = val);
-                        this.apiUpdateBatch(ids, 'status', val);
-                    }
-                },
-
-                async apiUpdateBatch(ids, field, value) {
-                    if (ids.length === 0) return;
-                    try {
-                        await fetch('/api/update-batch', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ Ids: ids, Field: field, Value: value })
-                        });
-                    } catch (e) { console.error(e); }
                 },
 
                 updateZoom() { document.body.style.zoom = this.zoomLevel; },
@@ -1033,7 +1212,6 @@
                                 Selected: old ? old.Selected : false,
                                 Note: o.Note || '',
                                 Printed: o.Printed || false,
-                                // Load thêm 2 trường mới, nếu chưa có thì gán mặc định rỗng
                                 Picker: o.Picker || '',
                                 PickingStatus: o.PickingStatus || ''
                             };
@@ -1091,33 +1269,6 @@
                 showConfirm(msg, action) { this.confirmMessage = msg; this.pendingConfirmAction = action; this.confirmModalInstance.show(); },
                 executeConfirm() { if (this.pendingConfirmAction) this.pendingConfirmAction(); this.confirmModalInstance.hide(); },
                 confirmShip(id) { this.showConfirm('Bạn chắc chắn muốn chuẩn bị đơn này?', () => { this.shipOrder(id); }); },
-                finishPicking() {
-                    const unpicked = this.batchItems.filter(i => !i.Picked);
-                    if (unpicked.length === 0) {
-                        this.applyNoteToOrders(this.batchItems, 'Đã soạn');
-                        this.closePicking();
-                    } else {
-                        this.showUnpickedHighlight = true;
-                        this.showConfirm('Còn ' + unpicked.length + ' loại chưa nhặt. Vẫn hoàn thành và đánh dấu lỗi?', () => {
-                            const picked = this.batchItems.filter(i => i.Picked);
-                            this.applyNoteToOrders(picked, 'Đã soạn');
-                            this.applyNoteToOrders(unpicked, 'Chưa soạn');
-                            this.closePicking();
-                        });
-                    }
-                },
-                applyNoteToOrders(items, note) {
-                    items.forEach(item => {
-                        item.OrderIds.forEach(shortId => {
-                            const order = this.orders.find(o => o.OrderId.endsWith(shortId) && o.Selected);
-                            if (order) {
-                                if (note === 'Đã soạn' && order.Note === 'Chưa soạn') return;
-                                order.Note = note;
-                                fetch(`/api/note?id=${order.OrderId}`, { method: 'POST', body: note });
-                            }
-                        });
-                    });
-                },
                 closePicking() {
                     this.isBatchMode = false;
                     this.orders.forEach(o => o.Selected = false);
@@ -1151,69 +1302,45 @@
                 },
                 
                 async printOrders() {
-                const selected = this.orders.filter(o => o.Selected);
-                if (selected.length === 0) return;
-
-                if (!confirm(`Xác nhận in ${selected.length} đơn trên máy chủ?`)) return;
-
-                this.isPrinting = true; // Hiện màn hình chờ
-                const ids = selected.map(o => o.OrderId);
-
-                try {
-                    const res = await fetch('/api/print', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ Ids: ids })
-                    });
-                    
-                    const data = await res.json();
-                    
-                    if (data.success) {
-                        let msg = `Máy chủ đã in xong ${data.processed.length} đơn.`;
-                        if (data.errors && data.errors.length > 0) msg += `\nLỗi ${data.errors.length} đơn.`;
-                        alert(msg);
-
-                        // Cập nhật giao diện
-                        this.orders.forEach(o => {
-                            if (data.processed.includes(o.OrderId)) {
-                                o.Selected = false; // Bỏ chọn
-                                o.Printed = true;   // Hiện icon máy in
-                            }
-                        });
-                    } else {
-                        alert('Lỗi: ' + (data.message || 'Không xác định'));
-                    }
-
-                } catch (e) {
-                    console.error(e);
-                    alert('Lỗi kết nối tới máy chủ!');
-                } finally {
-                    this.isPrinting = false; // Tắt màn hình chờ
-                }
-            },
-                startPicking() {
                     const selected = this.orders.filter(o => o.Selected);
                     if (selected.length === 0) return;
-                    const agg = {};
-                    selected.forEach(order => {
-                        order.Items.forEach(item => {
-                            const key = item.ModelName;
-                            if (!agg[key]) agg[key] = {
-                                ProductName: item.ProductName,
-                                ModelName: item.ModelName,
-                                ImageUrl: item.ImageUrl,
-                                Shelf: item.Shelf,
-                                Level: item.Level,
-                                Box: item.Box,
-                                TotalQty: 0, OrderIds: [], Picked: false,
-                                ItemId: item.ItemId
-                            };
-                            agg[key].TotalQty += item.Quantity;
-                            agg[key].OrderIds.push(order.OrderId.slice(-4));
+
+                    if (!confirm(`Xác nhận in ${selected.length} đơn trên máy chủ?`)) return;
+
+                    this.isPrinting = true;
+                    const ids = selected.map(o => o.OrderId);
+
+                    try {
+                        const res = await fetch('/api/print', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ Ids: ids })
                         });
-                    });
-                    this.batchItems = Object.values(agg);
-                    this.currentView = 'picking';
+                        
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            let msg = `Máy chủ đã in xong ${data.processed.length} đơn.`;
+                            if (data.errors && data.errors.length > 0) msg += `\nLỗi ${data.errors.length} đơn.`;
+                            alert(msg);
+
+                            // Cập nhật giao diện
+                            this.orders.forEach(o => {
+                                if (data.processed.includes(o.OrderId)) {
+                                    o.Selected = false; 
+                                    o.Printed = true;
+                                }
+                            });
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không xác định'));
+                        }
+
+                    } catch (e) {
+                        console.error(e);
+                        alert('Lỗi kết nối tới máy chủ!');
+                    } finally {
+                        this.isPrinting = false;
+                    }
                 },
                 async showProductModal(item) {
                     this.loadingModal = true;
