@@ -926,7 +926,7 @@
                     // [SỬA 1] Tăng lên 1000ms để phân biệt rõ ràng giữa "Cuộn" và "Giữ"
                     this.pressTimer = setTimeout(() => {
                         this.triggerLongPressAction();
-                    }, 1000); 
+                    }, 700); 
                 },
 
                 handlePressMove(event) {
@@ -937,7 +937,7 @@
                         
                         // [SỬA 2] Giảm xuống 1px. 
                         // Chỉ cần ngón tay nhích nhẹ (hành động cuộn) là hủy lệnh giữ ngay lập tức.
-                        if (Math.hypot(moveX - this.pressStartX, moveY - this.pressStartY) > 1) {
+                        if (Math.hypot(moveX - this.pressStartX, moveY - this.pressStartY) > 2) {
                             this.cancelPress();
                         }
                     }
