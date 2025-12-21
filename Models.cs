@@ -23,8 +23,9 @@ namespace ShopeeServer
 
     public class OrderItem
     {
-        public long ItemId { get; set; }
+        public long ProductId { get; set; }
         public string ProductName { get; set; } = ""; // Tên sản phẩm
+        public long ModelId { get; set; }
         public string ModelName { get; set; } = ""; // Tên phân loại
         public string ImageUrl { get; set; } = "";
         public int Quantity { get; set; }

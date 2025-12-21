@@ -1023,7 +1023,7 @@
                     const agg = {};
                     selected.forEach(order => {
                         order.Items.forEach(item => {
-                            const key = item.ModelName;
+                            const key = item.ModelId;
                             if (!agg[key]) agg[key] = {
                                 ProductName: item.ProductName,
                                 ModelName: item.ModelName,
@@ -1032,7 +1032,7 @@
                                 Level: item.Level,
                                 Box: item.Box,
                                 TotalQty: 0, OrderIds: [], Picked: false,
-                                ItemId: item.ItemId
+                                ProductId: item.ProductId
                             };
                             agg[key].TotalQty += item.Quantity;
                             agg[key].OrderIds.push(order.OrderId.slice(-4));
@@ -1093,6 +1093,8 @@
 
                 async apiUpdateBatch(ids, field, value) {
                     if (ids.length === 0) return;
+                    if (field === 'picker') order.Picker = value;
+                    if (field === 'status') order.PickingStatus = value;
                     try {
                         await fetch('/api/update-batch', {
                             method: 'POST',
@@ -1348,7 +1350,7 @@
                     this.variations = [];
                     new bootstrap.Modal(document.getElementById('productModal')).show();
                     try {
-                        const res = await fetch('/api/product?id=' + item.ItemId);
+                        const res = await fetch('/api/product?id=' + item.ProductId);
                         const data = await res.json();
                         if (data.success) {
                             this.variations = data.variations;

@@ -222,8 +222,9 @@ namespace ShopeeServer
                                     Dictionary<string, string> itemLocation = GetItemLocation(name);
                                     ord.Items.Add(new OrderItem
                                     {
-                                        ItemId = it.GetProperty("item_id").GetInt64(),
+                                        ProductId = it.GetProperty("item_id").GetInt64(),
                                         ProductName = it.GetProperty("item_name").GetString()!,
+                                        ModelId = it.GetProperty("model_id").GetInt64(),
                                         ModelName = name,
                                         ImageUrl = it.GetProperty("image_info").GetProperty("image_url").GetString()!,
                                         Quantity = it.GetProperty("model_quantity_purchased").GetInt32(),
