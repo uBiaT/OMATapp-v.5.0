@@ -487,8 +487,8 @@
                                     <li><button class='dropdown-item py-2 fw-bold' v-if='tab==="processed"' @click='printOrders'><i class='bi bi-box-seam me-2'></i>In đơn</button></li>
                                     <li><hr class='dropdown-divider'></li>
                                     <li><button class='dropdown-item py-2' @click='batchAddNote'><i class='bi bi-pencil-square me-2'></i>Ghi chú</button></li>
-                                    <li><button class='dropdown-item py-2' @click='batchAssignPicker'><i class='bi bi-person-badge me-2'></i>Gán Người soạn</button></li>
-                                    <li><button class='dropdown-item py-2' @click='batchAssignStatus'><i class='bi bi-check2-square me-2'></i>Gán Trạng thái</button></li>
+                                    <li><button class='dropdown-item py-2' v-if='tab==="unprocessed"' @click='batchAssignPicker'><i class='bi bi-person-badge me-2'></i>Gán Người soạn</button></li>
+                                    <li><button class='dropdown-item py-2' v-if='tab==="unprocessed"' @click='batchAssignStatus'><i class='bi bi-check2-square me-2'></i>Gán Trạng thái</button></li>
                                 </ul>
                             </div>
                         </div>
@@ -1093,8 +1093,6 @@
 
                 async apiUpdateBatch(ids, field, value) {
                     if (ids.length === 0) return;
-                    if (field === 'picker') order.Picker = value;
-                    if (field === 'status') order.PickingStatus = value;
                     try {
                         await fetch('/api/update-batch', {
                             method: 'POST',
