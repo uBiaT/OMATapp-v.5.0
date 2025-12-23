@@ -431,18 +431,18 @@
                                     </div>
                                 </li>
 
-                                <div class='filter-section-title mt-2'>Người soạn</div>
-                                <li v-for='opt in pickerOptionsList' :key='opt.value' class='mb-1'>
-                                    <div class='form-check ms-3'>
-                                        <input class='form-check-input' type='checkbox' :value='opt.value' v-model='filterPickers' @click.stop>
+                                <div class='filter-section-title'>Người soạn</div>
+                                <li v-for='opt in pickerOptionsList' :key='opt.value' class='mb-2'>
+                                    <div class='form-check d-flex align-items-center ps-0'>
+                                        <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterPickers' @click.stop>
                                         <label class='form-check-label small'>{{opt.label}}</label>
                                     </div>
                                 </li>
 
-                                <div class='filter-section-title mt-2'>Trạng thái soạn</div>
-                                <li v-for='opt in statusOptionsList' :key='opt.value' class='mb-1'>
-                                    <div class='form-check ms-3'>
-                                        <input class='form-check-input' type='checkbox' :value='opt.value' v-model='filterStatuses' @click.stop>
+                                <div class='filter-section-title'>Trạng thái soạn</div>
+                                <li v-for='opt in statusOptionsList' :key='opt.value' class='mb-2'>
+                                    <div class='form-check d-flex align-items-center ps-0'>
+                                        <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterStatuses' @click.stop>
                                         <label class='form-check-label small'>
                                             <i class='bi' :class='opt.icon' :style='{color: opt.color}'></i> {{opt.label}}
                                         </label>

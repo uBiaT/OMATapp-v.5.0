@@ -665,8 +665,8 @@ namespace ShopeeServer
                                 {
                                     var p = new System.Diagnostics.Process();
                                     p.StartInfo.FileName = printerTool;
-                                    // Thêm -print-settings "fit" để tự động co dãn vừa khổ giấy
-                                    p.StartInfo.Arguments = $"-print-to-default -silent -print-settings \"fit\" \"{filePath}\"";
+                                    // Thêm "paper=75x100mm" để ép khổ, và "fit" để thu nhỏ nội dung A6 vào A7
+                                    p.StartInfo.Arguments = $"-print-to-default -silent -print-settings \"paper=A7,fit\" \"{filePath}\"";
                                     p.StartInfo.CreateNoWindow = true;
                                     p.StartInfo.UseShellExecute = false;
                                     p.Start();
