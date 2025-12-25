@@ -41,7 +41,7 @@ namespace ShopeeServer
             catch { }
         }
 
-        private static readonly Regex LocationRegex = new(@"\[(?<Shelf>\d{1,2})N(?<Level>\d)(?:-(?<Box>\d))?\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex LocationRegex = new(@"\[(?<Shelf>\d{1,2})N(?<Level>\d)(?:(?:-|T)(?<Box>\d{1,2}))?\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public static Dictionary<string, string> GetItemLocation(string input)
         {
@@ -297,7 +297,7 @@ namespace ShopeeServer
             {
                 listener.Start();
                 Log("Web Server đang chạy tại: http://localhost:8080/");
-                try { Process.Start(new ProcessStartInfo("http://localhost:8080/") { UseShellExecute = true }); } catch { }
+                //try { Process.Start(new ProcessStartInfo("http://localhost:8080/") { UseShellExecute = true }); } catch { }
             }
             catch (Exception ex)
             {
@@ -666,7 +666,7 @@ namespace ShopeeServer
                                     var p = new System.Diagnostics.Process();
                                     p.StartInfo.FileName = printerTool;
                                     // Thêm "paper=75x100mm" để ép khổ, và "fit" để thu nhỏ nội dung A6 vào A7
-                                    p.StartInfo.Arguments = $"-print-to-default -silent -print-settings \"paper=A7,fit\" \"{filePath}\"";
+                                    p.StartInfo.Arguments = $"-print-to-default -silent -print-settings \"paper=A7\" \"{filePath}\"";
                                     p.StartInfo.CreateNoWindow = true;
                                     p.StartInfo.UseShellExecute = false;
                                     p.Start();

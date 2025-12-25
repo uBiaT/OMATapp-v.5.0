@@ -268,9 +268,9 @@
         }
 
         .note-badge {
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
+            padding: 1px 6px;
+            border-radius: 6px;
+            font-size: 0.75em;
             margin-top: 4px;
             display: inline-block;
             font-weight: bold;
@@ -417,39 +417,50 @@
                                 <span v-if='activeFilterCount > 0' class='badge bg-primary ms-1'>{{activeFilterCount}}</span>
                             </button>
                             <ul class='dropdown-menu shadow p-2 dropdown-menu-scroll' style='min-width: 260px;'>
-
-                                <div class='filter-section-title'>Trạng thái in</div>
-                                <li v-for='opt in printStatusOptions' :key='opt.value' class='mb-2'>
-                                    <div class='form-check d-flex align-items-center ps-0' style='cursor:pointer' @click='togglePrintStatus(opt.value)'>
-                                        <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterPrintStatus' @click.stop>
-                                        <div class='flex-grow-1 d-flex justify-content-between align-items-center'>
-                                            <span class='fw-bold' :class='opt.value === "yes" ? "text-success" : "text-secondary"'>
-                                                <i class='bi' :class='opt.value === "yes" ? "bi-printer-fill" : "bi-printer"'></i> {{opt.label}}
-                                            </span>
-                                            <span class='badge bg-secondary rounded-pill ms-2'>{{opt.count}}</span>
+                                <div v-if='tab==="processed"'>
+                                    <div class='filter-section-title'>Trạng thái in</div>
+                                    <li v-for='opt in printStatusOptions' :key='opt.value' class='mb-2'>
+                                        <div class='form-check d-flex align-items-center ps-0' style='cursor:pointer' @click='togglePrintStatus(opt.value)'>
+                                            <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterPrintStatus' @click.stop>
+                                            <div class='flex-grow-1 d-flex justify-content-between align-items-center'>
+                                                <span class='fw-bold' :class='opt.value === "yes" ? "text-success" : "text-secondary"'>
+                                                    <i class='bi' :class='opt.value === "yes" ? "bi-printer-fill" : "bi-printer"'></i> {{opt.label}}
+                                                </span>
+                                                <span class='badge bg-secondary rounded-pill ms-2'>{{opt.count}}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </li>
+                                    </li>
+                                </div>
 
-                                <div class='filter-section-title'>Người soạn</div>
-                                <li v-for='opt in pickerOptionsList' :key='opt.value' class='mb-2'>
-                                    <div class='form-check d-flex align-items-center ps-0'>
-                                        <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterPickers' @click.stop>
-                                        <label class='form-check-label small'>{{opt.label}}</label>
+                                <div class='d-flex align-items-top'>
+                                    <div>
+                                        <div class='filter-section-title'>Người soạn</div>
+                                        <li v-for='opt in pickerOptionsList' :key='opt.value' class='mb-2'>
+                                            <div class='form-check d-flex align-items-center ps-0 width=140px'>
+                                                <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterPickers' @click.stop>
+                                                <div class='flex-grow-1 d-flex justify-content-between align-items-center'>
+                                                    <span class='badge border form-check-label small fw-bold ' :style='getPickerStyle(opt.label)'>{{opt.label}}</span>
+                                                    <span class='badge bg-secondary rounded-pill ms-2'>{{opt.count}}</span>
+                                                </div>
+                                            </div>
+                                        </li>
                                     </div>
-                                </li>
 
-                                <div class='filter-section-title'>Trạng thái soạn</div>
-                                <li v-for='opt in statusOptionsList' :key='opt.value' class='mb-2'>
-                                    <div class='form-check d-flex align-items-center ps-0'>
-                                        <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterStatuses' @click.stop>
-                                        <label class='form-check-label small'>
-                                            <i class='bi' :class='opt.icon' :style='{color: opt.color}'></i> {{opt.label}}
-                                        </label>
+                                    <div v-if='tab==="unprocessed"'>
+                                        <div class='filter-section-title'>Trạng thái soạn</div>
+                                        <li v-for='opt in statusOptionsList' :key='opt.value' class='mb-2'>
+                                            <div class='form-check d-flex align-items-center ps-0'>
+                                                <input class='form-check-input big-checkbox mx-2 mt-0' type='checkbox' :value='opt.value' v-model='filterStatuses' @click.stop>
+                                                <div class='flex-grow-1 d-flex justify-content-between align-items-center'>
+                                                    <span class='form-check-label small fw-bold' :class='opt.value === "yes" ? "text-success" : "text-secondary"'>
+                                                        <i class='bi' :class='opt.icon' :style='{color: opt.color}'></i> {{opt.label}}
+                                                    </span>
+                                                    <span class='badge bg-secondary rounded-pill ms-2'>{{opt.count}}</span>
+                                                </div>
+                                            </div>
+                                        </li>
                                     </div>
-                                </li>
-
-                                <li><hr class='dropdown-divider my-1'></li>
+                                </div>
 
                                 <div class='filter-section-title'>Đơn vị vận chuyển</div>
                                 <li v-for='carrier in availableCarriers' :key='carrier.name' class='mb-2'>
@@ -546,7 +557,7 @@
                                         <i class='bi bi-person-fill me-1'></i>{{ getPickerLabel(order.Picker) }}
                                     </span>
 
-                                    <span class='badge border'
+                                    <span v-if='tab==="unprocessed"' class='badge border'
                                           :style='getStatusStyle(order.PickingStatus)'
                                           style='cursor:pointer; font-weight:500'
                                           @touchstart.stop='startPress("status", order)'
@@ -753,7 +764,7 @@
             { value: 'Tài', label: 'Tài', color: '#0d47a1' },
             { value: 'Oanh', label: 'Oanh', color: '#4a148c' },
             { value: 'My', label: 'My', color: '#1b5e20' },
-            { value: 'Mẹ Hà', label: 'Mẹ Hà', color: '#5e1b1bff' }
+            { value: 'Thi', label: 'Thi', color: '#5e1b1bff' }
         ];
 
         const STATUS_OPTIONS = [
@@ -1080,7 +1091,7 @@
                 getPickerLabel(val) { return this.getPickerConfig(val).label; },
                 getPickerStyle(val) {
                     const cfg = this.getPickerConfig(val);
-                    return { backgroundColor: cfg.color, color: (['Tài','My','Oanh','Mẹ Hà'].includes(val)) ? '#fff' : (cfg.color==='#666'?'#fff':'#000'), borderColor: cfg.color };
+                    return { backgroundColor: cfg.color, color: (['Tài','My','Oanh','Thi'].includes(val)) ? '#fff' : (cfg.color==='#666'?'#fff':'#000'), borderColor: cfg.color };
                 },
 
                 getStatusLabel(val) { return this.getStatusConfig(val).label; },
